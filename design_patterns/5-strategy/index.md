@@ -1,88 +1,71 @@
----
-slug: flutter-design-patterns-5-strategy
-title: "Flutter Design Patterns: Strategy"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
 
-_An overview of the Strategy design pattern and its implementation in Dart and Flutter_
+_策略设计模式概述及其在Dart和Flutter中的实现_
 
 ![Header image](./img/header.png)
 
-In the last [article](../2019-11-07-flutter-design-patterns-4-composite/index.md), I have represented the Composite design pattern. This time, I would like to analyse and implement a design pattern that belongs to the category of behavioural design patterns — Strategy.
+要查看所有设计模式的实际应用，请查看[Flutter 设计模式应用程序。](https://flutterdesignpatterns.com/).
 
-<!--truncate-->
-
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
-
-## What is the Strategy design pattern?
+## 什么是策略设计模式？
 
 ![Cat strategy](./img/cat_strategy.gif)
 
-**Strategy**, also known as policy, belongs to the category of **behavioural** design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+**策略模式**属于行为型设计模式之一。这个设计模式的意图在[GoF book](https://en.wikipedia.org/wiki/Design_Patterns)书籍中描述如下：
 
-> _Define a family of algorithms, encapsulate each one, and make them interchangeable. Strategy lets the algorithm vary independently from clients that use it._
+> _定义一组算法，将每个算法都封装起来，并使它们可以互换。策略模式让算法独立于使用它的客户端而变化。_
 
-The Strategy is considered as one of the most practical design patterns, you can find a lot of uses for it in day-to-day coding. The main idea of this pattern is to extract related algorithms (or any piece of code) into separate classes and define a common interface for them. This enables compile-time flexibility - new algorithms can be added by defining new classes, and existing ones can be changed independently. Also, the extracted strategy class can be changed in the code dynamically at run-time. Another advantage of the pattern is that allows you to isolate the code, internal data, and dependencies of various algorithms from the rest of the code - clients use a simple interface to execute the algorithms and switch them at run-time. Possible use-cases of the Strategy design pattern:
+策略模式被认为是最实用的设计模式之一，你可以在日常编码中找到许多用途。这个模式的主要思想是将相关算法（或任何代码片段）提取到单独的类中，并为它们定义一个通用接口。这使得在编译时具有灵活性，可以通过定义新的类来添加新的算法，并且可以独立地更改现有算法。此外，提取的策略类可以在运行时动态更改代码。该模式的另一个优点是，它允许将各种算法的代码、内部数据和依赖项与其余代码隔离开来，客户端使用简单的接口来执行算法，并在运行时切换它们。策略设计模式的可能用例包括：
 
-- Sorting algorithms - each algorithm (e.g. bubble sort, quicksort, etc.) is extracted into a separate class, a common interface is defined which provides a method _sort()_;
-- Payment strategies - you want to define different payment options in your code (mobile payment, bank transfer, cash, credit card, you name it) and use them based on the user's selection;
-- Damage calculation in RPG game - there are several different types of attack in the game e.g. attacking with different moves, combos, spells, using weapons, etc. Several different algorithms could be defined for each attack type and the damage value could be calculated based on the context.
+- 排序算法 - 每个算法（例如冒泡排序、快速排序等）都被提取到单独的类中，定义了一个提供_sort()_方法的通用接口；
+- 支付策略 - 您希望在代码中定义不同的支付选项（手机支付、银行转账、现金、信用卡等），并根据用户的选择使用它们；
+- RPG游戏中的伤害计算 - 游戏中有多种不同类型的攻击，例如使用不同的招式、连招、咒语、使用武器等。可以为每种攻击类型定义多种不同的算法，并根据上下文计算伤害值。
 
-Let's jump right in by analysing the Strategy design pattern and its implementation in more detail!
+让我们详细分析策略设计模式及其实现！
 
-## Analysis
+## 分析
 
-In the picture below you can see a general structure of the Strategy design pattern:
+在下面的图片中，您可以看到策略设计模式的一般结构：
 
 ![Structure of the Strategy design pattern](./img/strategy.png)
 
-- *Strategy* - declares an interface that is common to all supported algorithms. It also declares a method the _Context_ uses to execute a specific strategy;
-- *ConcreteStrategies* - implement different algorithms using the _Strategy_ interface which is used by the _Context_;
-- *Context* - maintains a reference to a _Strategy_ object, but is independent of how the algorithm is implemented;
-- *Client* - creates a specific strategy object and passes it to the _Context_.
+- 策略（Strategy） - 声明一个通用于所有支持算法的接口。它还声明了一个Context使用来执行特定策略的方法；
+- 具体策略（Concrete Strategies） - 使用Strategy接口实现不同的算法，Context使用这个接口，不关心算法的具体实现；
+- 上下文（Context） - 保存对Strategy对象的引用，但不依赖于算法的实现方式；
+- 客户端（Client） - 创建一个特定的策略对象，并将其传递给Context。
 
-### Applicability
+### 适用性
 
-The primary purpose of the Strategy design pattern is to encapsulate a family of algorithms (related algorithms) such that they could be callable through a common interface, hence being interchangeable based on the specific situation. Also, this pattern should be considered when you want to use different calculation logic within an object and/or be able to switch between different algorithms at run-time. A general rule of thumb - if you notice different behaviours lumped into a single class, or there are several conditional statements in the code for selecting a specific algorithm based on some kind of context or business rules (multiple if/else blocks, switch statements), this is a big indicator that you should use the Strategy design pattern and encapsulate the calculation logic in separate classes (strategies). This idea promotes the **Open-Closed Principle** (the letter **O** in [**SOLID**](https://en.wikipedia.org/wiki/SOLID) principles) since extending your code with new behaviour (algorithm) does not insist you change the logic inside a single class but allows creating a new strategy class instead - *software entities (classes, modules, functions, etc.) should be open for extension, but closed for modification*.
+策略设计模式的主要目的是封装一组算法（相关的算法），以便它们可以通过一个通用接口调用，因此可以根据具体情况进行替换。此外，当您想要在对象内部使用不同的计算逻辑和/或能够在不同算法之间切换时，应考虑使用这种模式。一个通用的经验法则是，如果您注意到不同的行为被合并到单个类中，或者代码中有多个条件语句用于根据某种上下文或业务规则选择特定的算法（多个if/else块、switch语句），这是您应该使用策略设计模式并将计算逻辑封装在单独的类（策略）中的一个明显指示器。这个想法促进了**开闭原则**（[**SOLID**](https://en.wikipedia.org/wiki/SOLID) 原则中的**O**）的实现，因为扩展代码以添加新行为（算法）不需要更改单个类内部的逻辑，而是允许创建一个新的策略类，因此软件实体（类、模块、函数等）应该对扩展开放，对修改关闭。
 
-## Implementation
+## 实现
 
 ![Alright, let's do it](./img/lets_do_it.gif)
 
-The following example and the problem we want to resolve could look similar to some of you, which are using Flutter to build an e-commerce mobile application. Let's say that your e-shop business offers several different shipping types for your customers:
+以下示例和我们要解决的问题可能对一些使用Flutter构建电子商务移动应用程序的人来说看起来很相似。假设您的电子商店业务为客户提供多种不同的送货方式：
 
-- Picking up the ordered items from a physical store (or any other physical place, e.g. a warehouse);
-- Sending order items using parcel terminal services;
-- Sending order items directly to your customers in the shortest delivery time possible - priority shipping.
+- 从实体店（或任何其他实体地点，例如仓库）提取已订购的物品；
+- 使用包裹终端服务发送订单物品；
+- 以最短的交货时间将订单物品直接送达客户 - 优先送货。
 
-These three types contain different shipping costs calculation logic which should be determined at run-time, e.g. when the customer selects a specific shipping option in UI. At first sight, the most obvious solution (since we do not know which shipping option would be selected) is to define these algorithms in a single class and execute a specific calculation logic based on the customer's choice. However, this implementation is not flexible, for instance, if you want to add a new shipping type in the future, you should adjust the class by implementing the new algorithm, at the same time adding more conditional statements in the code - this violates the Open-Closed principle since you need to change the existing code for the upcoming business requirements. A better approach to this problem is to extract each algorithm into a separate class and define a common interface that will be used to inject the specific shipping costs calculation strategy into your code at run-time. Well, the Strategy design pattern is an obvious choice for this problem, isn't it?
+这三种类型包含不同的运费计算逻辑，应在运行时确定，例如当客户在UI中选择特定的运费选项时。乍一看，最明显的解决方案（因为我们不知道将选择哪种运输选项）是在单个类中定义这些算法，并根据客户选择执行特定的计算逻辑。然而，这种实现不够灵活，例如，如果将来要添加新的运输类型，您应该通过实现新的算法来调整类，同时在代码中添加更多的条件语句 - 这违反了开闭原则，因为您需要更改现有的代码以满足即将到来的业务需求。解决这个问题的更好方法是将每个算法提取到单独的类中，并定义一个通用接口，用于在运行时将特定的运费计算策略注入到您的代码中。策略设计模式显然是这个问题的明显选择，不是吗？
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Strategy design pattern:
+下面的类图显示了策略设计模式的实现：
 
 ![Class Diagram - Implementation of the Strategy design pattern](./img/strategy_implementation.png)
 
-`IShippingCostsStrategy` defines a common interface for all the specific strategies:
+`IShippingCostsStrategy`定义了所有具体策略必须实现的通用接口：
 
-- `label` - a text label of the strategy which is used in UI;
-- `calculate()` - method to calculate shipping costs for the order. It uses information from the `Order` class object passed as a parameter.
+- `label` - 策略的文本标签，用于在UI中使用；
+- `calculate()` - 用于计算订单的运费的方法。它使用作为参数传递的`Order`类对象的信息。
 
-`InStorePickupStrategy`, `ParcelTerminalShippingStrategy` and `PriorityShippingStrategy` are concrete implementations of the `IShippingCostsStrategy` interface. Each of the strategies provides a specific algorithm for the shipping costs calculation and defines it in the `calculate()` method.
+`InStorePickupStrategy`、`ParcelTerminalShippingStrategy`和`PriorityShippingStrategy`是`IShippingCostsStrategy`接口的具体实现。每个策略提供了特定的运费计算算法，并在`calculate()`方法中定义了它。
 
-`StrategyExample` widget stores all different shipping costs calculation strategies in the `shippingCostsStrategyList` variable.
+`StrategyExample`小部件在`shippingCostsStrategyList`变量中存储了所有不同的运费计算策略。
 
 ### IShippingCostsStrategy
 
-An interface that defines methods and properties to be implemented by all supported algorithms.
+定义了必须由所有支持的算法实现的方法和属性的接口。
 
 ```dart title="ishipping_costs_strategy.dart"
 abstract interface class IShippingCostsStrategy {
@@ -91,9 +74,9 @@ abstract interface class IShippingCostsStrategy {
 }
 ```
 
-### Specific implementations of the `IShippingCostsStrategy` interface
+### `IShippingCostsStrategy` 接口的具体实现
 
-`InStorePickupStrategy` implements the shipping strategy which requires the customer to pick up the order in the store. Hence, there are no shipping costs and the `calculate()` method returns 0.
+`InStorePickupStrategy`实现了需要客户在商店中提取订单的运输策略。因此，没有运输成本，`calculate()`方法返回0。
 
 ```dart title="in_store_pickup_strategy.dart"
 class InStorePickupStrategy implements IShippingCostsStrategy {
@@ -105,7 +88,7 @@ class InStorePickupStrategy implements IShippingCostsStrategy {
 }
 ```
 
-`ParcelTerminalShippingStrategy` implements the shipping strategy when an order is delivered using the parcel terminal service. When using parcel terminals, each order item is sent separately and the shipping cost depends on the parcel size. The final shipping price is calculated by adding up the separate shipping cost of each order item.
+`ParcelTerminalShippingStrategy`实现了使用包裹终端服务送货的运输策略。在使用包裹终端时，每个订单项都单独发送，运费取决于包裹大小。通过将每个订单项的单独运费相加来计算最终的运费。
 
 ```dart title="parcel_terminal_shipping_strategy.dart"
 class ParcelTerminalShippingStrategy implements IShippingCostsStrategy {
@@ -128,7 +111,7 @@ class ParcelTerminalShippingStrategy implements IShippingCostsStrategy {
 }
 ```
 
-`PriorityShippingStrategy` implements the shipping strategy which has a fixed shipping cost for a single order. In this case, the `calculate()` method returns a specific price of 9.99.
+`PriorityShippingStrategy`实现了单个订单的运输策略，具有固定的运输成本。在这种情况下，`calculate()`方法返回特定的价格9.99。
 
 ```dart title="priority_shipping_strategy.dart"
 class PriorityShippingStrategy implements IShippingCostsStrategy {
@@ -142,7 +125,7 @@ class PriorityShippingStrategy implements IShippingCostsStrategy {
 
 ### Order
 
-A simple class to store an order's information. `Order` class contains a list of order items, provides a method to add a new `OrderItem` to the order, and also defines a getter method `price` which returns the total price of the order (without shipping).
+一个简单的类，用于存储订单的信息。`Order`类包含一个订单项的列表，提供了一个将新的`OrderItem`添加到订单的方法，并定义了一个`price`的getter方法，该方法返回订单的总价格（不包括运费）。
 
 ```dart title="order.dart"
 class Order {
@@ -157,7 +140,7 @@ class Order {
 
 ### OrderItem
 
-A simple class to store information about a single order item. `OrderItem` class contains properties to store the order item's title, price and package (parcel) size. Also, the class exposes a named constructor `OrderItem.random()` which allows creating/generating an `OrderItem` with random property values.
+一个简单的类，用于存储单个订单项的信息。`OrderItem`类包含属性，用于存储订单项的标题、价格和包裹（包裹）大小。此外，该类公开了一个带有命名构造函数`OrderItem.random()`的方法，允许使用随机属性值创建/生成`OrderItem`。
 
 ```dart title="order_item.dart"
 class OrderItem {
@@ -185,8 +168,7 @@ class OrderItem {
 
 ### PackageSize
 
-A special kind of class - *enumeration* - defines different package sizes of the order item.
-
+一种特殊类型的类 - 枚举 - 定义了订单项的不同包裹大小。
 ```dart title="order_item.dart"
 enum PackageSize {
   S,
@@ -198,11 +180,11 @@ enum PackageSize {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个Markdown文件，并提供了一个模式的描述：
 
 ![Example markdown](./img/example_markdown.gif)
 
-`StrategyExample` implements the example widget of the Strategy design pattern. It contains a list of different shipping strategies (`shippingCostsStrategyList`) and provides it to the `ShippingOptions` widget where the index of a specific strategy is selected by triggering the `setSelectedStrategyIndex()` method. Then, the selected strategy is injected into the `OrderSummary` widget where the final price of the order is calculated.
+`StrategyExample`实现了策略设计模式的示例小部件。它包含一个不同的运费策略列表（`shippingCostsStrategyList`）并将其提供给`ShippingOptions`小部件，通过触发`setSelectedStrategyIndex()`方法来选择特定策略的索引。然后，所选策略被注入到`OrderSummary`小部件中，计算订单的最终价格。
 
 ```dart title="strategy_example.dart"
 class StrategyExample extends StatefulWidget {
@@ -294,7 +276,7 @@ class _StrategyExampleState extends State<StrategyExample> {
 }
 ```
 
-`ShippingOptions` widget handles the selection of a specific shipping strategy. The widget provides a radio button list item for each strategy in the `shippingOptions` list. After selecting a specific shipping strategy, the `onChanged()` method is triggered and the selected index is passed to the parent widget (`StrategyExample`). This implementation allows us to change the specific shipping costs calculation strategy at run-time.
+`ShippingOptions`小部件处理特定运输策略的选择。该小部件为`shippingOptions`列表中的每个策略提供单选按钮列表项。在选择特定的运输策略后，将触发`onChanged()`方法，并将所选索引传递给父小部件（`StrategyExample`）。这个实现允许我们在运行时更改特定的运费计算策略。
 
 ```dart title="shipping_options.dart"
 class ShippingOptions extends StatelessWidget {
@@ -338,6 +320,9 @@ class ShippingOptions extends StatelessWidget {
 ```
 
 `OrderSummary` widget uses the injected shipping strategy of type `IShippingCostsStrategy` for the final order's price calculation. The widget only cares about the type of shipping strategy, but not its specific implementation. Hence, we can provide different shipping costs calculation strategies of type `IShippingCostsStrategy` without making any changes to the UI.
+
+`OrderSummary` widget 使用了注入的类型为 `IShippingCostsStrategy` 的运费策略来计算最终订单的价格。这个 widget 只关心运费策略的类型，而不关心其具体实现。因此，我们
+
 
 ```dart title="order_summary.dart"
 class OrderSummary extends StatelessWidget {
