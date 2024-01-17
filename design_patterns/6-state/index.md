@@ -1,16 +1,5 @@
----
-slug: flutter-design-patterns-6-state
-title: "Flutter Design Patterns: State"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
 
-_An overview of the State design pattern and its implementation in Dart and Flutter_
+_状态设计模式概述及其在Dart和Flutter中的实现_
 
 ![Header image](./img/header.png)
 
