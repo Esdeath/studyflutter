@@ -12,3 +12,13 @@
 [5.策略设计模式](design_patterns/5-strategy/index.md)
 
 [6.状态设计模式](design_patterns/6-state/index.md)
+
+[7.状态设计模式](design_patterns/6-state/index.md)
+
+[6.状态设计模式](design_patterns/6-state/index.md)
+
+[6.状态设计模式](design_patterns/6-state/index.md)
+
+[6.状态设计模式](design_patterns/6-state/index.md)
+
+[6.状态设计模式](design_patterns/6-state/index.md)

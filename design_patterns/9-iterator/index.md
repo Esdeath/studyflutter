@@ -1,106 +1,89 @@
----
-slug: flutter-design-patterns-9-iterator
-title: "Flutter Design Patterns: Iterator"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
+_迭代器设计模式概述及其在 Dart 和 Flutter 中的实现_
 
-_An overview of the Iterator design pattern and its implementation in Dart and Flutter_
+![标题图片](./img/header.png)
 
-![Header image](./img/header.png)
+要查看所有设计模式的实际操作，请查看 [Flutter 设计模式应用程序](https://flutterdesignpatterns.com/)。
 
-In the last [article](../2019-12-05-flutter-design-patterns-8-interpreter/index.md), I analyzed one of the behavioural design patterns - Interpreter. This time I would like to represent the pattern which specific implementation(s) you have probably already used in your day-to-day programming without even noticing or considering it - the Iterator design pattern.
+## 迭代器设计模式是什么？
 
-<!--truncate-->
+![遍历图](./img/graph_iteration.gif)
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+**迭代器**是一种**行为型**设计模式，也被称为**游标**。在 [GoF 书籍](https://en.wikipedia.org/wiki/Design_Patterns)中，此设计模式的目的描述如下：
 
-## What is the Iterator design pattern?
+> _提供一种访问聚合对象中元素的方式，同时不暴露其底层表示。_
 
-![Iterating over the graph](./img/graph_iteration.gif)
+这个模式的关键思想是将访问和遍历的责任从列表对象（或任何其他集合）中移除，放入一个**迭代器**对象中。这个类定义了一个接口来遍历特定集合、访问其元素，并负责跟踪集合中迭代器的当前位置。此外，集合接口被定义为存储将被遍历的底层数据结构，并提供了一种方法来为该特定集合创建特定的迭代器。这些对集合及其迭代逻辑的抽象允许客户端使用不同的数据结构，并通过使用迭代器和集合接口来遍历它们，就好像它们都是相同的一样。
 
-**Iterator** is a **behavioural** design pattern, also known as **Cursor**. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+正如我已经提到的，你可能已经在不知不觉中使用过这种设计模式（至少是其实现），特别是如果你熟悉使用 Java 或 C#/.NET 进行开发。例如，所有 Java 集合都提供了一些内部实现的迭代器接口，用于遍历集合元素。在 C# 上下文中，有一些特殊的容器类型能够容纳一系列值，例如 _List_ 和 _ArrayList_，它们附带了遍历它们的可能性。
 
-> _Provide a way to access the elements of an aggregate object sequentially without exposing its underlying representation._
+让我们继续分析和实现部分，以了解有关此模式的详细信息，并学习如何实现我们自定义的迭代器！
 
-The key idea in this pattern is to take the responsibility for access and traversal out of the list object (or any other collection) and put it into an **iterator** object. This class defines an interface to iterate over the specific collection, access its elements and is responsible to track the current position of the iterator in the collection. Also, the collection interface is defined to store the underlying data structure which will be iterated over and provides a method to create the specific iterator for that particular collection. These abstractions over the collection and its iteration logic allow the client to use different data structures and iterate over them just like they would be the same by using both - iterator and collection - interfaces.
+## 分析
 
-As I have already mentioned, you have probably already used this design pattern (at least its implementation) without even noticing it, especially if you are familiar with the development using Java or C#/.NET. For instance, all Java collections provide some internal implementations of the Iterator interface which is used to iterate over collection elements. In the C# context, there are some special container types capable of holding a collection of values e.g. _List_, and _ArrayList_, which come with the possibility to iterate over them.
+迭代器设计模式的一般结构如下所示：
 
-Let's move to the analysis and implementation parts to understand the details about this pattern and learn how to implement our custom iterator!
+![迭代器设计模式的结构](./img/iterator.png)
 
-## Analysis
+- *IterableCollection* - 定义用于创建 _Iterator_ 对象的接口；
+- *ConcreteCollection* - 实现 _Iterator_ 创建接口，以在客户端每次请求时返回特定迭代器类的新实例。这个类也可以包含额外的代码/逻辑，例如用于存储应该迭代的数据结构；
+- *Iterator* - 定义用于访问和遍历集合元素的接口；
+- *ConcreteIterator* - 实现 _Iterator_ 接口。此类还应该跟踪遍历进度，例如集合遍历中的当前位置；
+- *Client* - 通过它们的接口引用和使用集合和迭代器。
 
-The general structure of the Iterator design pattern looks like this:
+### 适用性
 
-![Structure of the Iterator design pattern](./img/iterator.png)
+当您想要抽象集合的迭代逻辑并访问其元素，同时不暴露集合本身的内部结构时，应该使用迭代器设计模式。这促进了 [单一责任原则](https://en.wikipedia.org/wiki/Single-responsibility_principle) 以及 [DRY](https://en.wikipedia.org/wiki/Don't_repeat_yourself)（**不要重复自己**）原则的理念。
 
-- *IterableCollection* - defines an interface for creating an _Iterator_ object;
-- *ConcreteCollection* - implements the _Iterator_ creation interface to return a new instance of a particular specific iterator class each time the client requests one. This class could also contain additional code/logic e.g. to store the data structure which should be iterated;
-- *Iterator* - defines an interface for accessing and traversing elements of the collection;
-- *ConcreteIterator* - implements the _Iterator_ interface. Also, this class should track the traversal progress e.g. the current position in the traversal of the collection;
-- *Client* - references and uses both collections and iterators via their interfaces.
+此外，当您想要以几种不同的方式遍历同一个集合时，这种模式非常有用，具体取决于您想要完成的目标。例如，您想要一个迭代器来遍历整个集合，另一个只迭代符合过滤标准的特定集合项，或者说，迭代集合中的每个第二个元素。在这种情况下，您不需要扩展单一接口来实现不同的迭代算法，您只需创建不同的迭代器类来实现相同的接口，并带有它们特定的迭代逻辑。
 
-### Applicability
+此外，当您想要以几种不同的方式遍历同一个集合时，这种模式非常有用，具体取决于您想要完成的目标。例如，您想要一个迭代器来遍历整个集合，另一个只迭代符合过滤标准的特定集合项，或者说，迭代集合中的每个第二个元素。在这种情况下，您不需要扩展单一接口来实现不同的迭代算法，您只需创建不同的迭代器类来实现相同的接口，并带有它们特定的迭代逻辑。
 
-The Iterator design pattern should be used when you want to abstract the iteration logic of the collection and access its elements without exposing the internal structure of the collection itself. This promotes the idea of the [Single Responsibility Principle](https://en.wikipedia.org/wiki/Single-responsibility_principle) as well as the [DRY](https://en.wikipedia.org/wiki/Don't_repeat_yourself) (**D**on't **R**epeat **Y**ourself) principle.
+## 实现
 
-Furthermore, this pattern is useful when you want to traverse the same collection in several different ways, depending on what you want to accomplish. For instance, you want to have one iterator to iterate over the whole collection and another to iterate only over the specific collection items which match the filter criteria, or, let's say, iterate over every second element in the collection. For this case, you do not need to bloat a single interface to implement different iteration algorithms, you just create different iterator classes implementing the same interface with their specific iteration logic.
+![是时候实施我们的计划了](./img/its_time_to_implement.gif)
 
-Finally, the Iterator design pattern could help when you are not sure about the specific implementation of your data structures beforehand, but you want to implement the logic to traverse them and use it in your client. The pattern provides a couple of generic interfaces for both collections and iterators. Given that your code now uses these interfaces, it will still work if you pass it to various kinds of collections and iterators that implement these interfaces.
+首先，为了更好地理解实现部分，你应该熟悉树数据结构。如果你没有跟随这个系列，我在分析 [Composite](../2019-11-07-flutter-design-patterns-4-composite/index.md) 设计模式时已经解释过，但如果你已经读过这篇文章 - *给格兰芬多加10分*！
 
-## Implementation
+这次我们将研究[图论](https://en.wikipedia.org/wiki/Graph_theory)的一个基本部分 - 图遍历。图遍历定义为：
 
-![It's time for us to implement our plan](./img/its_time_to_implement.gif)
+> _在计算机科学中，图遍历（也称为图搜索）是指访问（检查和/或更新）图中每个顶点的过程。这样的遍历按照顶点被访问的顺序进行分类。树遍历是图遍历的特殊情况。_
 
-First of all, to understand the implementation part better, you should be familiar with the tree data structure. If you are not following the series, I have explained it when analysing the [Composite](../2019-11-07-flutter-design-patterns-4-composite/index.md) design pattern, but if you have already read this article - *10 points for Gryffindor*!
+这次，我们将只关注树遍历的情况。有几种图/树遍历算法可供选择：
 
-This time we will investigate one of the fundamental parts of [graph theory](https://en.wikipedia.org/wiki/Graph_theory) - the graph traversal. The graph traversal is defined as:
-
-> _In computer science, graph traversal (also known as graph search) refers to the process of visiting (checking and/or updating) each vertex in a graph. Such traversals are classified by the order in which the vertices are visited. Tree traversal is a special case of graph traversal._
-
-This time, we will focus only on the tree traversal case. There are several graph/tree traversal algorithms available out there:
-
-- **Depth-first search (DFS)** - visits the child vertices before visiting the sibling vertices; that is, it traverses the depth of any particular path before exploring its breadth;
-- **Breadth-first search (BFS)** - visits the sibling vertices before visiting the child vertices.
+- **深度优先搜索 (DFS)** - 在访问兄弟顶点之前访问子顶点；即，它先遍历任何特定路径的深度，然后再探索其宽度；
+- **广度优先搜索 (BFS)** - 在访问子顶点之前访问兄弟顶点。
 
 ![BFS vs DFS](./img/bfs_vs_dfs.png)
 
-Let's say you want to experiment with the tree traversal using different algorithms. Furthermore, the visualization of these algorithms should be provided to the UI where you can switch between different algorithms easily, but use the same tree data structure for both of them. Also, you want to hide the implementation details of how the tree data structure should be iterated for each algorithm. To implement this, the Iterator design pattern is an obvious choice.
+假设你想使用不同的算法来试验树遍历。此外，这些算法的可视化应该提供给UI，以便你可以轻松地在不同算法之间切换，但对于这两种算法都使用相同的树数据结构。同时，你想隐藏每种算法迭代树数据结构的实现细节。为了实现这一点，迭代器设计模式是一个显而易见的选择。
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Iterator design pattern:
+下面的类图展示了迭代器设计模式的实现：
 
-![Class Diagram - Implementation of the Iterator design pattern](./img/iterator_implementation.png)
+![类图 - 迭代器设计模式的实现](./img/iterator_implementation.png)
 
-`ITreeCollection` defines a common interface for all the specific tree collections:
+`ITreeCollection` 定义了所有特定树集合的通用接口：
 
-- `createIterator()` - creates an iterator for the specific tree collection;
-- `getTitle()` - returns the title of the tree collection which is used in the UI.
+- `createIterator()` - 为特定的树集合创建一个迭代器；
+- `getTitle()` - 返回树集合的标题，用于UI中。
 
-`DepthFirstTreeCollection` and `BreadthFirstTreeCollection` are concrete implementations of the `ITreeCollection` interface. `DepthFirstTreeCollection` creates the `DepthFirstIterator` while `BreadthFirstTreeCollection` creates the `BreadthFirstIterator`. Also, both of these collections store the Graph object to save the tree data structure itself.
+`DepthFirstTreeCollection` 和 `BreadthFirstTreeCollection` 是 `ITreeCollection` 接口的具体实现。`DepthFirstTreeCollection` 创建了 `DepthFirstIterator`，而 `BreadthFirstTreeCollection` 创建了 `BreadthFirstIterator`。此外，这两个集合都存储了 Graph 对象来保存树的数据结构。
 
-`ITreeIterator` defines a common interface for all specific iterators of the tree collection:
+`ITreeIterator` 定义了树集合的所有特定迭代器的通用接口：
 
-- `hasNext()` - returns true if the iterator did not reach the end of the collection yet, otherwise false;
-- `getNext()` - returns the next value of the collection;
-- `reset()` - resets the iterator and sets its current position of it to the beginning.
+- `hasNext()` - 如果迭代器还没有到达集合的末尾，则返回 true，否则返回 false；
+- `getNext()` - 返回集合的下一个值；
+- `reset()` - 重置迭代器，并将其当前位置设置为开始位置。
 
-`DepthFirstIterator` and `BreadthFirstIterator` are concrete implementations of the `ITreeIterator` interface. `DepthFirstIterator` implements the **depth-first** algorithm to traverse the tree collection. Correspondingly, `BreadthFirstIterator` implements the **breadth-first** algorithm. The main difference between these two algorithms is the order in which all of the nodes are visited. Hence, the depth-first algorithm is implemented using the **stack** data structure while the breadth-first algorithm uses the **queue** data structure to store nodes (vertices) that should be visited next.
+`DepthFirstIterator` 和 `BreadthFirstIterator` 是 `ITreeIterator` 接口的具体实现。`DepthFirstIterator` 实现了遍历树集合的**深度优先**算法。相应地，`BreadthFirstIterator` 实现了**广度优先**算法。这两种算法的主要区别在于访问所有节点的顺序。因此，深度优先算法使用**栈**数据结构实现，而广度优先算法使用**队列**数据结构存储接下来要访问的节点（顶点）。
 
-`IteratorExample` references both interfaces - `ITreeCollection` and `ITreeIterator` - to specify the required tree collection and create an appropriate iterator for it.
+`IteratorExample` 引用了两个接口 - `ITreeCollection` 和 `ITreeIterator` - 来指定所需的树集合并为其创建适当的迭代器。
 
 ### Graph
 
-A class that stores the [adjacency list](https://en.wikipedia.org/wiki/Adjacency_list) of the graph. It is stored as a map data structure where the key represents the node's (vertex) id and the value is a list of vertices (ids of other nodes) adjacent to the vertex of that id (key). Also, this class defines the `addEdge()` method to add an edge to the adjacency list.
+一个存储[邻接列表](https://en.wikipedia.org/wiki/Adjacency_list)的类。它被存储为一个 map 数据结构，其中键代表节点（顶点）的 id，值是与该 id（键）的顶点相邻的顶点列表（其他节点的 id）。此外，这个类定义了 `addEdge()` 方法来向邻接列表添加一条边。
+
 
 ```dart title="graph.dart"
 class Graph {
@@ -114,7 +97,7 @@ class Graph {
 
 ### ITreeCollection
 
-An interface that defines methods to be implemented by all specific tree collection classes.
+一个定义了所有特定树集合类需要实现的方法的接口。
 
 ```dart title="itree_collection.dart"
 abstract interface class ITreeCollection {
@@ -125,7 +108,7 @@ abstract interface class ITreeCollection {
 
 ### Tree collections
 
-`DepthFirstTreeCollection` - a tree collection class that stores the graph object and implements the `createIterator()` method to create an iterator that uses the depth-first algorithm to traverse the graph.
+`DepthFirstTreeCollection` - 一个存储图对象的树集合类，实现了 `createIterator()` 方法来创建一个使用深度优先算法遍历图的迭代器。
 
 ```dart title="depth_first_tree_collection.dart"
 class DepthFirstTreeCollection implements ITreeCollection {
@@ -141,7 +124,7 @@ class DepthFirstTreeCollection implements ITreeCollection {
 }
 ```
 
-`BreadthFirstTreeCollection` - a tree collection class that stores the graph object and implements the `createIterator()` method to create an iterator that uses the breadth-first algorithm to traverse the graph.
+`BreadthFirstTreeCollection` - 一个存储图对象的树集合类，实现了 `createIterator()` 方法来创建一个使用广度优先算法遍历图的迭代器。
 
 ```dart title="breadth_first_tree_collection.dart"
 class BreadthFirstTreeCollection implements ITreeCollection {
@@ -159,7 +142,7 @@ class BreadthFirstTreeCollection implements ITreeCollection {
 
 ### ITreeIterator
 
-An interface that defines methods to be implemented by all specific iterators of the tree collection.
+一个定义了所有特定树集合迭代器需要实现的方法的接口。
 
 ```dart title="itree_iterator.dart"
 abstract interface class ITreeIterator {
@@ -169,9 +152,9 @@ abstract interface class ITreeIterator {
 }
 ```
 
-### Tree iterators
+### 树迭代器
 
-`DepthFirstIterator` - a specific implementation of the tree iterator which traverses the tree collection by using the depth-first algorithm. This algorithm uses the **stack** data structure to store vertices (nodes) which should be visited next using the `getNext()` method.
+`DepthFirstIterator` - 一个使用深度优先算法遍历树集合的具体迭代器实现。这个算法使用**栈**数据结构来存储下一个要访问的顶点（节点），通过 `getNext()` 方法实现。
 
 ```dart title="depth_first_iterator.dart"
 class DepthFirstIterator implements ITreeIterator {
@@ -219,7 +202,7 @@ class DepthFirstIterator implements ITreeIterator {
 }
 ```
 
-`BreadthFirstIterator` - a specific implementation of the tree iterator which traverses the tree collection by using the breadth-first algorithm. This algorithm uses the **queue** data structure to store vertices (nodes) that should be visited next using the `getNext()` method.
+`BreadthFirstIterator` - 一个使用广度优先算法遍历树集合的具体迭代器实现。这个算法使用**队列**数据结构来存储下一个要访问的顶点（节点），通过 `getNext()` 方法实现。
 
 ```dart title="breadth_first_iterator.dart"
 class BreadthFirstIterator implements ITreeIterator {
@@ -267,13 +250,13 @@ class BreadthFirstIterator implements ITreeIterator {
 }
 ```
 
-## Example
+## 示例
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个 markdown 文件作为模式的描述：
 
 ![Example markdown](./img/example_markdown.gif)
 
-The `IteratorExample` widget is responsible for building the tree (graph) using the `Graph` class and contains a list of tree collection objects. After selecting the specific tree collection from the list and triggering the `traverseTree()` method, an appropriate iterator of that particular tree collection is created and used to traverse the tree data structure.
+`IteratorExample` 小部件负责使用 `Graph` 类构建树（图）并包含一系列树集合对象。在列表中选择特定的树集合并触发 `traverseTree()` 方法后，会创建并使用该树集合的适当迭代器来遍历树数据结构。
 
 ```dart title="iterator_example.dart"
 class IteratorExample extends StatefulWidget {
@@ -426,16 +409,14 @@ class _IteratorExampleState extends State<IteratorExample> {
 }
 ```
 
-As you can see in the `traverseTree()` method, all the implementation details of the tree collection's traversal are hidden from the client, it only uses the `hasNext()` and `getNext()` methods defined by the `ITreeIterator` interface to iterate through all of the vertices (nodes) of the built `Graph` object (tree).
+如你在 `traverseTree()` 方法中可以看到，树集合遍历的所有实现细节都对客户端隐藏，它只使用由 `ITreeIterator` 接口定义的 `hasNext()` 和 `getNext()` 方法来遍历构建的 `Graph` 对象（树）的所有顶点（节点）。
 
-The final result of the Iterator design pattern's implementation looks like this:
+迭代器设计模式实现的最终结果如下所示：
 
 ![Iterator example](./img/example.gif)
 
-As you can see in the example, by selecting the specific tree collection and creating its iterator, the algorithm to traverse the tree also changes and it is visually noticeable in the demonstration.
+如示例中所见，通过选择特定的树集合并创建其迭代器，遍历树的算法也发生了变化，并且在演示中可以直观地看到。
 
-All of the code changes for the Iterator design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/10).
+所有迭代器设计模式及其示例实现的代码更改可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/10)找到。
 
-:::tip
-To see the pattern in action, check the [interactive Iterator example](https://flutterdesignpatterns.com/pattern/iterator).
-:::
+要查看该模式的实际操作，请查看[交互式迭代器示例](https://flutterdesignpatterns.com/pattern/iterator)。
