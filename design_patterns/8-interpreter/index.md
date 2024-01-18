@@ -1,70 +1,52 @@
----
-slug: flutter-design-patterns-8-interpreter
-title: "Flutter Design Patterns: Interpreter"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
-
-_An overview of the Interpreter design pattern and its implementation in Dart and Flutter_
+_解释器设计模式及其在 Dart 和 Flutter 中的实现概述_
 
 ![Header image](./img/header.png)
 
-Previously in the series, I analysed a relatively simple and straightforward design pattern — [Facade](../2019-11-28-flutter-design-patterns-7-facade/index.md). In this article, I will analyse and implement a pattern, which has a similar structure to [Composite](../2019-11-07-flutter-design-patterns-4-composite/index.md) but is used in a different context and for a different purpose — the Interpreter design pattern.
+要查看所有设计模式的实际应用，请查看 [Flutter 设计模式应用](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
+## 什么是解释器设计模式？
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+![错误解释](./img/wrong_interpretation.gif)
 
-## What is the Interpreter design pattern?
+**解释器**是一种**行为型**设计模式，[GoF 书籍](https://en.wikipedia.org/wiki/Design_Patterns)中描述其意图如下：
 
-![Wrong interpretation](./img/wrong_interpretation.gif)
+> _针对一种语言，定义其语法的表示，以及使用该表示来解释该语言中的句子。_
 
-The **Interpreter** is a **behavioural** design pattern, which intention in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns) is described like this:
+其背后的主要思想是，一种语言是一组有效的句子。这些句子中的每一个都可以通过遵循定义该语言的一组语法规则来构造。有时，需要解释这些句子的程序会处理许多类似请求的重复出现，这些请求是一组语法规则的组合，但所有这些请求都使用相同的语法规则组成。例如，算术表达式可能不同并提供不同的结果（加法、减法、乘法、除法），但它们都是由定义算术表达式语言的相同基本规则构成的。
 
-> _Given a language, define a representation for its grammar along with an inter­preter that uses the representation to interpret sentences in the language._
+那么解释器设计模式在哪里发挥作用呢？这种模式可以将这些基本规则中的每一个表示为代表单独语法规则的独立类，并通过构建这些规则的层次结构，可以定义该特定语言的任何句子。此外，为每个语法规则设置独立的类，使得更改语法本身并维护它变得容易，添加新的解释操作也变得容易。
 
-The main idea behind this is that a language is a set of valid sentences. Each of those sentences can be constructed by following a set of grammar rules defining the language. Sometimes the program which needs to interpret those sentences process a lot of repeated occurrences of similar requests that are a combination of a set of grammar rules, but all of these requests are composed using the same grammar rules. For instance, arithmetic expressions could be different and provide different results (addition, subtraction, multiplication, division), but all of them are constructed of the same basic rules defining the language of arithmetic expressions.
+初听起来可能有些复杂，但让我们来看看解释器设计模式的分析和实现部分，那里你可以找到一些具体的解释器设计模式示例及其使用。
 
-So where the Interpreter design pattern plays its role? Well, this pattern could represent each of those basic rules as a separate class representing a separate grammar rule and by making a hierarchy of these rules you can define any sentence of that particular language. Also, having a separate class for every grammar rule makes it easy to change the grammar itself and maintain it, adding new kinds of interpret operations becomes an easy task, too.
+## 分析
 
-It could sound complicated at first, but let's move to the analysis and implementation parts where you can find some specific examples of the Interpreter design pattern and its usage.
+下面的类图展示了解释器设计模式的一般结构：
 
-## Analysis
+![解释器设计模式的结构](./img/interpreter.png)
 
-The class diagram below shows the general structure of the Interpreter design pattern:
+- *AbstractExpression* - 声明一个抽象的 _interpret()_ 操作，这是抽象语法树中所有节点的通用操作；
+- *TerminalExpression* - 实现与语法中的终结符号相关的 _interpret()_ 操作；
+- *NonterminalExpression* - 实现语法中非终结符号的 _interpret()_ 操作。此操作通常在代表其他表达式（语法规则）的变量上递归调用自身；
+- *Context* - 包含解释器的全局信息，该信息在表达式实例之间共享；
+- *Client* - 构建表示语法定义的语言中特定句子的抽象语法树，并调用 _interpret()_ 操作。
 
-![Structure of the Interpreter design pattern](./img/interpreter.png)
+### 组合模式 vs 解释器模式
 
-- *AbstractExpression* - declares an abstract _interpret()_ operation that is common to all nodes in the abstract syntax tree;
-- *TerminalExpression* - implement an _interpret()_ operation associated with terminal symbols in the grammar;
-- *NonterminalExpression* - implement an _interpret()_ operation for nonterminal symbols in the grammar. This operation typically calls itself recursively on the variables representing other expressions (grammar rules);
-- *Context* - contains the global information of the interpreter which is shared among the expression instances;
-- *Client* - builds an abstract syntax tree representing a particular sentence in the language that the grammar defines and invokes the _interpret()_ operation.
+解释器设计模式与组合模式的相似性是显而易见的。解释器本身使用组合模式来构建和表示简单语言中的句子作为树。但这就是全部了 - 组合模式仅用于定义系统的静态属性，定义结构（它是结构型设计模式，对吧？），而解释器代表了语言本身，定义了行为，具有解释树中每个实体的额外逻辑，共享相同的上下文 - 这是主要区别，也是这种模式被视为行为型设计模式的原因。
 
-### Composite vs Interpreter
+### 适用性
 
-The Interpreter design pattern's similarity to the Composite is evident. The Interpreter itself uses the Composite design pattern to build and represent a sentence in a simple language as a tree. But that's all - the Composite pattern is only used to define the static properties of the system, to define the structure (it is a structural design pattern, right?), but the Interpreter represents the language itself, defines the behaviour, has some additional logic to interpret each entity in the tree, shares the same context between them - that's the main difference and the reason why this pattern is considered as a behavioural design pattern.
-
-### Applicability
-
-The usage of the Interpreter design pattern is quite dedicated to interpreting languages in which statements could be represented as an abstract syntax tree. Usually, this kind of language has a simple grammar defined in specific rules e.g. RegEx (regular expression), bar codes, mathematical expressions/notations, etc. Also, the Interpreter design pattern should be used when efficiency is not a critical concern since building and parsing expression trees for the bigger sentences of the language is relatively inefficient (e.g. comparing to parsers and interpreters that translate the expression tree to the other form before interpreting it).
+解释器设计模式的使用通常专用于解释那些语句可以表示为抽象语法树的语言。通常，这种类型的语言具有在特定规则中定义的简单语法，例如 RegEx（正则表达式）、条形码、数学表达式/符号等。同时，当效率不是关键问题时也应使用解释器设计模式，因为为语言中较大的句子构建和解析表达式树相对效率较低（例如，与在解释它之前将表达式树翻译成其他形式的解析器和解释器相比）。
 
 ## Implementation
 
 ![We need to make this work](./img/make_this_work.gif)
 
-Let's say you want to create a program that parses and solves the postfix mathematical expression. A postfix a.k.a. [Reverse Polish notation](https://en.wikipedia.org/wiki/Reverse_Polish_notation) (RPN) is a mathematical notation in which every operator follows all of its operands e.g. `69+242-*+` which is equivalent to `6+9+(4-2)*2`.
+假设你想创建一个解析和求解后缀数学表达式的程序。后缀也称为[逆波兰表示法](https://en.wikipedia.org/wiki/Reverse_Polish_notation) (RPN)，是一种数学符号，其中每个运算符都跟随其所有操作数，例如 `69+242-*+`，等效于 `6+9+(4-2)*2`。
 
-The postfix expression contains two types of symbols - numbers and operators. Talking in [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) terms, numbers are **terminal** symbols and operators are **nonterminal** symbols.
+后缀表达式包含两种类型的符号 - 数字和运算符。用 [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar) 术语来说，数字是**终结符**符号，运算符是**非终结符**符号。
 
-The evaluation of the postfix expression could be implemented using the stack data structure by processing the expression from left to right:
+后缀表达式的求值可以使用栈数据结构来实现，通过从左到右处理表达式：
 
 ```
 for each token in the postfix expression:
@@ -78,36 +60,37 @@ for each token in the postfix expression:
 result ← pop from the stack
 ```
 
-Let's change this algorithm a little bit. By processing the postfix expression from left to right and instead of evaluating the expression on finding the operator's symbol, we could build an expression tree and evaluate it later. This kind of expression tree would look like this:
+让我们稍微改变一下这个算法。通过从左到右处理后缀表达式，而不是在找到运算符符号时立即评估表达式，我们可以构建一个表达式树并稍后对其进行评估。这种表达式树看起来是这样的：
 
 ![RPN expression tree](./img/rpn_tree.png)
 
-Terminal expressions (numbers) do not have any children in the expression tree, but each nonterminal expression (arithmetic operation) has two children - terminal and/or nonterminal expressions. To evaluate this kind of expression tree the program just has to start from the root, recursively execute (interpret) each expression and accumulate the final result.
+终结表达式（数字）在表达式树中没有任何子节点，但每个非终结表达式（算术运算）都有两个子节点 - 终结和/或非终结表达式。要评估这种类型的表达式树，程序只需从根开始，递归执行（解释）每个表达式，并累积最终结果。
 
-I expect you have already noticed that the Interpreter design pattern fits the problem of implementing the postfix mathematical expression parser just perfectly. So let's jump straight to the implementation details!
+我希望你已经注意到，解释器设计模式非常适合实现后缀数学表达式解析器的问题。那么，让我们直接跳到实现细节吧！
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Interpreter design pattern:
+下面的类图展示了解释器设计模式的实现：
 
-![Class Diagram - Implementation of the Interpreter design pattern](./img/interpreter_implementation.png)
+![解释器设计模式的实现类图](./img/interpreter_implementation.png)
 
-`IExpression` defines a common interface for both terminal and nonterminal expressions which implement the `interpret()` method:
+`IExpression` 定义了终结符和非终结符表达式的通用接口，这些表达式实现了 `interpret()` 方法：
 
-- `Number` - a terminal expression for numbers;
-- `Multiply` - a nonterminal expression of the multiplication operation;
-- `Subtract` - a nonterminal expression of the subtraction operation;
-- `Add` - a nonterminal expression of the addition operation.
+- `Number` - 数字的终结符表达式；
+- `Multiply` - 乘法运算的非终结符表达式；
+- `Subtract` - 减法运算的非终结符表达式；
+- `Add` - 加法运算的非终结符表达式。
 
-All of the nonterminal expressions contain left and right expressions of type `IExpression` which are used in the `interpret()` method to calculate the result of the arithmetic operation.
+所有非终结符表达式都包含类型为 `IExpression` 的左右表达式，这些表达式用于 `interpret()` 方法中计算算术运算的结果。
 
-`ExpressionContext` class contains the solution steps of the postfix expression and is used by the `ExpressionSection` widget to retrieve those steps and the `IExpression` interface implementing classes to add a specific solution step to the context.
+`ExpressionContext` 类包含后缀表达式的解决步骤，被 `ExpressionSection` 小部件用来检索这些步骤，也被实现 `IExpression` 接口的类用来向上下文中添加特定的解决步骤。
 
-`ExpressionSection` uses the `ExpressionHelpers` class to build the expression tree of the postfix expression and the `ExpressionContext` to retrieve the solution steps of the specific postfix expression.
+`ExpressionSection` 使用 `ExpressionHelpers` 类构建后缀表达式的表达式树，使用 `ExpressionContext` 检索特定后缀表达式的解决步骤。
 
 ### IExpression
 
-An interface that defines the `interpret()` method to be implemented by the terminal and nonterminal expression classes.
+定义了 `interpret()` 方法的接口，需由终结符和非终结符表达式类实现。
+
 
 ```dart title="iexpression.dart"
 abstract interface class IExpression {
@@ -117,7 +100,7 @@ abstract interface class IExpression {
 
 ### ExpressionContext
 
-A class to define the context which stores the solution steps of the postfix expression and is used by the `Client` and classes implementing the `IExpression` interface.
+一个定义上下文的类，该上下文存储后缀表达式的解决步骤，并被 `Client` 和实现 `IExpression` 接口的类使用。
 
 ```dart title="expression_context.dart"
 class ExpressionContext {
@@ -136,7 +119,7 @@ class ExpressionContext {
 
 ### ExpressionHelpers
 
-A helper class is used by the `Client` to build the expression tree from the provided postfix expression input.
+一个辅助类，由 `Client` 使用，用于从提供的后缀表达式输入构建表达式树。
 
 ```dart title="expression_helpers.dart"
 class ExpressionHelpers {
@@ -185,7 +168,7 @@ class ExpressionHelpers {
 
 ### Number
 
-A terminal expression class to define the number in postfix expression.
+定义后缀表达式中数字的终结符表达式类。
 
 ```dart title="number.dart"
 class Number implements IExpression {
@@ -198,9 +181,9 @@ class Number implements IExpression {
 }
 ```
 
-### Nonterminal expressions
+### 非终结符表达式
 
-`Add` defines the addition operation and adds the addition solution step to the `ExpressionContext`. The result of this operation - left and right expressions' sum.
+`Add` 定义了加法运算，并将加法解决步骤添加到 `ExpressionContext` 中。该操作的结果 - 左右表达式的和。
 
 ```dart title="add.dart"
 class Add implements IExpression {
@@ -222,7 +205,7 @@ class Add implements IExpression {
 }
 ```
 
-`Subtract` defines the subtraction operation and adds the subtraction solution step to the `ExpressionContext`. The result of this operation - left and right expressions' difference.
+`Subtract` 定义了减法运算，并将减法解决步骤添加到 `ExpressionContext` 中。该操作的结果 - 左右表达式的差。
 
 ```dart title="subtract.dart"
 class Subtract implements IExpression {
@@ -244,7 +227,7 @@ class Subtract implements IExpression {
 }
 ```
 
-`Multiply` defines the multiplication operation and adds the multiplication solution step to the `ExpressionContext`. The result of this operation - left and right expressions' product.
+`Multiply` 定义了乘法运算，并将乘法解决步骤添加到 `ExpressionContext` 中。该操作的结果 - 左右表达式的乘积。
 
 ```dart title="multiply.dart"
 class Multiply implements IExpression {
@@ -266,13 +249,13 @@ class Multiply implements IExpression {
 }
 ```
 
-## Example
+## 示例
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个作为模式描述的 markdown 文件：
 
-![Example markdown](./img/example_markdown.gif)
+![示例 markdown](./img/example_markdown.gif)
 
-The `InterpreterExample` widget contains the list of postfix expressions. For each expression in the `postfixExpressions` list, an `ExpressionSection` widget is created and a specific postfix expression is passed to it using the constructor.
+`InterpreterExample` 小部件包含后缀表达式的列表。对列表中的每个表达式，都创建了一个 `ExpressionSection` 小部件，并通过构造函数传递特定的后缀表达式。
 
 ```dart title="interpreter_example.dart"
 class InterpreterExample extends StatefulWidget {
@@ -313,7 +296,7 @@ class _InterpreterExampleState extends State<InterpreterExample> {
 }
 ```
 
-`ExpressionSection` uses the provided `postfixExpression` and builds its expression tree using the `ExpressionHelpers` class on the 'Solve' button click.
+`ExpressionSection` 使用提供的 `postfixExpression` 构建其表达式树，并在点击“解决”按钮时使用 `ExpressionHelpers` 类。
 
 ```dart title="expression_section.dart"
 class ExpressionSection extends StatefulWidget {
@@ -383,16 +366,14 @@ class _ExpressionSectionState extends State<ExpressionSection> {
 }
 ```
 
-The `buildExpressionTree()` method returns a single nonterminal expression of type `IExpression` which is used to calculate the final result of the provided postfix expression. The widget/method itself does not care about the specific implementation of the nonterminal expression, it only calls the `interpret()` method on the expression to get the final result. Also, a list of solution steps to get the final result is retrieved from the `ExpressionContext` using the `getSolutionSteps()` method and presented in the UI.
+`buildExpressionTree()` 方法返回一个类型为 `IExpression` 的单个非终结符表达式，用于计算提供的后缀表达式的最终结果。小部件/方法本身不关心非终结符表达式的具体实现，它只是在表达式上调用 `interpret()` 方法以获取最终结果。此外，从 `ExpressionContext` 使用 `getSolutionSteps()` 方法检索获取最终结果的解决步骤列表，并在 UI 中呈现。
 
-The final result of the Interpreter design pattern's implementation looks like this:
+解释器设计模式实现的最终结果如下所示：
 
 ![Interpreter example](./img/example.gif)
 
-As you can see in the example, every postfix expression is evaluated on a 'Solve' button click, all the solution steps are provided to the UI along with the final result.
+如示例所示，每个后缀表达式都在点击“解决”按钮时进行求值，所有解决步骤连同最终结果一起提供给 UI。
 
-All of the code changes for the Interpreter design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/9).
+解释器设计模式及其示例实现的所有代码更改可在 [此处](https://github.com/mkobuolys/flutter-design-patterns/pull/9) 找到。
 
-:::tip
-To see the pattern in action, check the [interactive Interpreter example](https://flutterdesignpatterns.com/pattern/interpreter).
-:::
+要查看模式的实际操作，请查看[交互式解释器示例](https://flutterdesignpatterns.com/pattern/interpreter)。
