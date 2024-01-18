@@ -319,8 +319,6 @@ class ShippingOptions extends StatelessWidget {
 }
 ```
 
-`OrderSummary` widget uses the injected shipping strategy of type `IShippingCostsStrategy` for the final order's price calculation. The widget only cares about the type of shipping strategy, but not its specific implementation. Hence, we can provide different shipping costs calculation strategies of type `IShippingCostsStrategy` without making any changes to the UI.
-
 `OrderSummary` widget 使用了注入的类型为 `IShippingCostsStrategy` 的运费策略来计算最终订单的价格。这个 widget 只关心运费策略的类型，而不关心其具体实现。因此，我们可以提供不同的类型为`IShippingCostsStrategy`的运费计算策略，而无需对 UI 进行任何更改。
 ```dart title="order_summary.dart"
 class OrderSummary extends StatelessWidget {
