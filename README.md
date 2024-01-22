@@ -7,18 +7,20 @@
 
 [3.模板方法模式](design_patterns/3-template-method/index.md)
 
-[4.组合设计模式](design_patterns/4-composite/index.md)
+[4.组合模式](design_patterns/4-composite/index.md)
 
-[5.策略设计模式](design_patterns/5-strategy/index.md)
+[5.策略模式](design_patterns/5-strategy/index.md)
 
-[6.状态设计模式](design_patterns/6-state/index.md)
+[6.状态模式](design_patterns/6-state/index.md)
 
-[7.状态设计模式](design_patterns/6-state/index.md)
+[7.外观模式](design_patterns/7-facade/index.md)
 
-[6.状态设计模式](design_patterns/6-state/index.md)
+[8.解释器模式](design_patterns/8-interpreter/index.md)
 
-[6.状态设计模式](design_patterns/6-state/index.md)
+[9.迭代器模式](design_patterns/9-iterator/index.md)
 
-[6.状态设计模式](design_patterns/6-state/index.md)
+[10.工厂模式](design_patterns/10-factory-method/index.md)
 
-[6.状态设计模式](design_patterns/6-state/index.md)
+[11.抽象工厂模式](design_patterns/11-abstract-factory/index.md)
+
+[12.命令模式](design_patterns/12-command/index.md)
