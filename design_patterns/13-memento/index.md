@@ -1,104 +1,88 @@
----
-slug: flutter-design-patterns-13-memento
-title: "Flutter Design Patterns: Memento"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
+_关于备忘录设计模式及其在 Dart 和 Flutter 中的实现的概述_
 
-_An overview of the Memento design pattern and its implementation in Dart and Flutter_
+### 概述
 
-![Header image](./img/header.png)
+![页眉图片](./img/header.png)
 
-In the last [article](../2020-01-09-flutter-design-patterns-12-command/index.md), I analysed a relatively popular design pattern - Command. In this article, I would like to analyse and implement a behavioural design pattern that works pretty well alongside the Command pattern - it is Memento.
+要查看所有设计模式的实际操作，请查看 [Flutter Design Patterns 应用程序](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
+## 什么是备忘录设计模式？
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+![捕捉当前世界状态的快照](./img/snapshot.gif)
 
-## What is the Memento design pattern?
+**备忘录**，也被称为**令牌**，属于**行为型**设计模式。这个设计模式的目的在 [GoF 书籍](https://en.wikipedia.org/wiki/Design_Patterns)中被描述为：
 
-![Making a snapshot of the current world's state](./img/snapshot.gif)
+> _不违反封装的情况下，捕获并外化一个对象的内部状态，以便稍后可以将该对象恢复到此状态。_
 
-**Memento**, also known as **Token**, belongs to the category of **behavioural** design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+这个模式的关键思想是让一个对象（**发起人**）自己负责保存和恢复其内部状态。内部状态（其快照）保存在另一个对象中——一个**备忘录**。当需要恢复发起人的内部状态时，撤销机制会向发起人请求备忘录。负责保存和恢复发起人内部状态的客户端（**负责人**）存储了一系列备忘录对象，以便可以将备忘录传回发起人以恢复到之前的状态。但是，负责人本身不允许访问或修改备忘录——只有创建特定备忘录的发起人对象被允许这样做。
 
-> _Without violating encapsulation, capture and externalize an object's internal state so that the object can be restored to this state later._
+为了更好地理解备忘录设计模式，让我们通过分析其结构和实现来深入了解！
 
-The key idea in this pattern is to make an object (**originator**) itself responsible for saving and restoring its internal state. The internal state (a snapshot of it) is saved in another object - a **memento**. The undo mechanism will request a memento from the originator when it needs to restore the originator's internal state. Clients (**caretaker**) that are responsible for saving and restoring an originator's internal state stores a list of memento objects so that a memento can be passed back to the originator to restore to a previous state. However, the caretaker itself isn't permitted to access or modify a memento - only the originator object that created the specific memento is allowed to do that.
+## 分析
 
-To understand the Memento design pattern better, let's dive in by analysing its structure and implementation in more detail!
+备忘录设计模式的一般结构如下所示：
 
-## Analysis
+![备忘录设计模式的结构](./img/memento.png)
 
-The general structure of the Memento design pattern looks like this:
+- *备忘录* - 声明一个接口，限制对 _具体备忘录_ 字段的访问，只声明与备忘录元数据相关的方法，这个接口被 _负责人_ 用来处理 _具体备忘录_ 对象；
+- *具体备忘录* - 存储 _发起人_ 的内部状态。同时，防止除了创建 _具体备忘录_ 的 _发起人_ 之外的对象访问。
+- *负责人* - 负责 _备忘录_ 的安全保管，永远不操作或检查 _备忘录_ 的内容。
+- *发起人* - 创建包含其当前内部状态快照的 _具体备忘录_。同时，提供 _restore()_ 方法使用 _具体备忘录_ 恢复内部状态。
 
-![Structure of the Memento design pattern](./img/memento.png)
+### 适用性
 
-- *Memento* - an interface that restricts access to the _ConcreteMemento_'s fields, only declares methods related to the memento's metadata and which is used by the _Caretaker_ to work with _ConcreteMemento_ object;
-- *ConcreteMemento* - stores an _Originator_'s internal state. Also, protects against access by objects other than the _Originator_ which has created the _ConcreteMemento_.
-- *Caretaker* - is responsible for the _Memento_'s safekeeping and never operates or examines the contents of a _Memento_.
-- *Originator* - creates a _ConcreteMemento_ containing a snapshot of its current internal state. Also, provides the _restore()_ method to restore the internal state using the _ConcreteMemento_.
+当你想要生成对象状态的快照以便能够恢复对象以前的状态时，应该使用备忘录设计模式。备忘录模式允许你制作对象状态的完整副本，包括私有字段，并将它们与对象分开存储。
 
-### Applicability
+此外，出于安全原因，当直接访问对象的字段/获取器/设置器违反其封装时，也可以使用该模式。备忘录使对象自己负责创建其状态的快照。没有其他对象可以读取快照，使原始对象的状态数据安全且安全。
 
-The Memento design pattern should be used when you want to produce snapshots of the object's state to be able to restore a previous state of the object. The Memento pattern lets you make full copies of an object's state, including private fields, and store them separately from the object.
+## 实现
 
-Also, the pattern could be used for safety reasons - when direct access to the object's fields/getters/setters violates its encapsulation. The Memento makes the object itself responsible for creating a snapshot of its state. No other object can read the snapshot, making the original object's state data safe and secure.
+![我会让它工作的](./img/make_it_work.gif)
 
-## Implementation
+为了实现备忘录设计模式并展示其优点，我们将在命令设计模式的示例上进一步工作。因此，如果您错过了[上一篇文章](../2020-01-09-flutter-design-patterns-12-command/index.md)，我强烈建议您现在查看其实现部分。
 
-![I'll make it work](./img/make_it_work.gif)
+示例的主要思想保持不变 - 我们将创建一个非常简单的虚构图形编辑器。为了简化命令设计模式的部分，示例的 UI 中只创建并可用一个命令 - `RandomisePropertiesCommand`。这个命令随机化形状对象的所有属性 - 高度、宽度和颜色 - 这充当我们示例的状态。
 
-To implement the Memento design pattern and show its advantages, we will work further on the Command design pattern's example. So if you have missed the [previous article](../2020-01-09-flutter-design-patterns-12-command/index.md), I strongly recommend checking the implementation part of it now.
+显然，与之前的实现不同的是 - 添加了备忘录设计模式。在实现命令设计模式的示例时，我们将其状态（形状对象）存储在示例组件本身中。这一次，状态存储在发起人对象内部，只能由它来操纵。`RandomisePropertiesCommand` 充当负责人对象，将发起人状态的先前快照存储在备份属性中。备份属性只不过是发起人在执行命令之前创建的 `Memento` 对象。
 
-The main idea of the example remains the same - we will create a very simple, fake graphics editor. To simplify the Command design pattern's part, only one command is created and available in the example's UI - `RandomisePropertiesCommand`. This command randomises all the properties of the Shape object - height, width and colour - which acts as a state of our example.
+使用备忘录设计模式的结果是，示例的状态被封装并移出了示例组件。此外，可以从其备忘录快照中恢复命令的 `undo()` 操作的先前状态。在这种情况下，备忘录设计模式扩展了命令设计模式，并与之非常好地协作。
 
-Obviously, what is different from the previous implementation - the Memento design pattern is added. When implementing the Command design pattern's example, we stored its state (Shape object) in the example component itself. This time, the state is stored inside the Originator object and could be manipulated only by it. The `RandomisePropertiesCommand` acts as a caretaker object and stores the previous snapshot of the originator's state in the backup property. The backup property is nothing else than the `Memento` object which is created by the originator before executing the command.
+在实现备忘录设计模式并将其集成到我们的示例之前，让我们先检查类图，然后研究其组件。
 
-As a result of using the Memento design pattern, the example's state is encapsulated and moved outside of the example component. Also, the previous state could be restored from its Memento snapshot on `undo()` operation of the command. In this case, the Memento design pattern extends the Command design pattern and collaborates with it really well.
+### 类图
 
-Before implementing the Memento design pattern and integrating it inside our example, let's check the class diagram first and investigate its components.
+下面的类图展示了备忘录设计模式的实现：
 
-### Class diagram
+![类图 - 备忘录设计模式的实现](./img/memento_implementation.png)
 
-The class diagram below shows the implementation of the Memento design pattern:
+`ICommand` 定义了特定命令的通用接口：
 
-![Class Diagram - Implementation of the Memento design pattern](./img/memento_implementation.png)
+- `execute()` - 执行命令；
+- `undo()` - 撤销命令并将状态恢复到之前的快照。
 
-`ICommand` defines a common interface for the specific command:
+`RandomisePropertiesCommand` 是一个实现了 `ICommand` 接口的具体命令。
 
-- `execute()` - executes the command;
-- `undo()` - undoes the command and returns the state to the previous snapshot of it.
+`CommandHistory` 是一个简单的类，存储了已执行命令的列表（`commandList`），并提供方法向命令历史列表中添加新命令（`add()`）以及撤销列表中的最后一个命令（`undo()`）。
 
-`RandomisePropertiesCommand` is a concrete command which implements `ICommand` interface.
+`IMemento` 定义了特定备忘录类的通用接口：
 
-`CommandHistory` is a simple class that stores a list of already executed commands (`commandList`) and provides methods to add a new command to the command history list (`add()`) and undo the last command from that list (`undo()`).
+- `getState()` - 返回发起人内部状态的快照。
 
-`IMemento` defines a common interface for the specific memento class:
+`Memento` 是一个充当发起人内部状态快照的类，该状态存储在 `state` 属性中，并通过 `getState()` 方法返回。
 
-- `getState()` - returns the snapshot of the internal originator's state.
+`Shape` 是一个简单的数据类，用作发起人的内部状态。它存储了定义 UI 中展示的形状的多个属性：`color`、`height` 和 `width`。
 
-`Memento` is a class that acts as a snapshot of the originator's internal state which is stored in the `state` property and returned via the `getState()` method.
+`Originator` - 一个简单的类，包含其内部状态，并使用 `createMemento()` 方法将其状态的快照存储到 `Memento` 对象中。此外，发起人的状态可以通过提供的 `Memento` 对象恢复，使用 `restore()` 方法。
 
-The `Shape` is a simple data class that is used as an internal originator's state. It stores multiple properties defining the shape presented in UI: `color`, `height` and `width`.
-
-`Originator` - a simple class that contains its internal state and stores the snapshot of it to the `Memento` object using the `createMemento()` method. Also, the originator's state could be restored from the provided Memento object using the `restore()` method.
-
-`MementoExample` initializes and contains `CommandHistory`, and `Originator` objects. Also, this component contains a `PlatformButton` widget that has the command of `RandomisePropertiesCommand` assigned to it. When the button is pressed, the command is executed and added to the command history list stored in the `CommandHistory` object.
+`MementoExample` 初始化并包含 `CommandHistory` 和 `Originator` 对象。此组件还包含一个分配有 `RandomisePropertiesCommand` 命令的 `PlatformButton` 小部件。当按钮被按下时，命令被执行并添加到存储在 `CommandHistory` 对象中的命令历史列表中。
 
 ### Shape
 
-A simple class to store information about the shape: its color, height and width. Also, this class contains several constructors:
+一个简单的类，用于存储有关形状的信息：颜色、高度和宽度。此类还包含几个构造函数：
 
-- `Shape()` - a basic constructor to create a shape object with provided values;
-- `Shape.initial()` - a named constructor to create a shape object with pre-defined initial values;
-- `Shape.copy()` - a named constructor to create a shape object as a copy of the provided `Shape` value.
+- `Shape()` - 基本构造函数，用于创建具有提供的值的形状对象；
+- `Shape.initial()` - 命名构造函数，用于创建具有预定义初始值的形状对象；
+- `Shape.copy()` - 命名构造函数，用于创建作为提供的 `Shape` 值副本的形状对象。
 
 ```dart title="shape.dart"
 class Shape {
