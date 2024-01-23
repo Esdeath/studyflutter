@@ -1,109 +1,91 @@
----
-slug: flutter-design-patterns-16-decorator
-title: "Flutter Design Patterns: Decorator"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
-
-_An overview of the Decorator design pattern and its implementation in Dart and Flutter_
+# 装饰者设计模式概述及在Dart和Flutter中的实现
 
 ![Header image](./img/header.png)
 
-Previously in the series, I analysed a relatively simple, but very practical design pattern — [Proxy](../2020-01-31-flutter-design-patterns-15-proxy/index.md). This time I would like to represent a design pattern, that, unlike the [Strategy](../2019-11-14-flutter-design-patterns-5-strategy/index.md) design pattern, extends the functionality of an object instead of exchanging it. It is a structural design pattern called Decorator.
+要查看所有设计模式的实际应用，请查看[Flutter Design Patterns应用](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
-
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
-
-## What is the Decorator design pattern?
+## 什么是装饰者设计模式？
 
 ![Hire an interior decorator](./img/hire_a_decorator.gif)
 
-**Decorator**, also known as **Wrapper**, is a **structural** design pattern, which intention in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns) is described like this:
+**装饰者**，又称**包装器**，是一种**结构型**设计模式，其在[GoF书籍](https://en.wikipedia.org/wiki/Design_Patterns)中的意图如下所述：
 
-> _Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality._
+> _动态地为对象附加额外的责任。装饰者提供了一种灵活的扩展功能的替代方案，而不需要通过子类化来扩展功能。_
 
-The Decorator design pattern provides a way of *changing the skin of an object without changing its guts* - it extends an object's functionality by wrapping it in an object of a Decorator class, leaving the original object intact without modification. Therefore, the pattern helps support one of the [**SOLID**](https://en.wikipedia.org/wiki/SOLID) principles - the Open/Closed Principle (classes should be closed for modification, but open for extension).
+装饰者设计模式提供了一种方法，可以在不改变对象本身的情况下改变对象的外观 - 它通过将对象包装在装饰者类的对象中来扩展对象的功能，从而保持了原始对象的完整性而没有进行修改。因此，该模式有助于支持[SOLID原则](https://en.wikipedia.org/wiki/SOLID)之一 - 开闭原则（类应该关闭修改，但应该对扩展开放）。
 
-The decorations (decorator classes) are independent of each other, hence they can be composed and chained together to add multiple behaviours (inception flashbacks, huh?). Also, another advantage is that this behaviour could be added at run-time, which leads to very flexible reuse of code, unlike using class inheritance. In addition to this, changing the order of decorators allows adding any combinations of responsibilities. However…
+这些装饰（装饰者类）彼此独立，因此它们可以组合和链接在一起以添加多个行为（反思创伤，嗯？）。此外，另一个优势是此行为可以在运行时添加，从而实现了代码的非常灵活的重用，不像使用类继承。此外，更改装饰者的顺序允许添加任何组合的责任。但是...
 
-> _With great power comes great responsibility_
+> 能力越大,责任越大
 
-The usage of the Decorator design pattern can also increase the complexity of code. To implement a specific component and make it modifiable at the run-time, not only do you need to implement the Component but also an indefinite amount of Decorator classes should be added to wrap it. A larger number of classes can sometimes be overwhelming, also debugging and testing the component wrapped by several additional classes does not make the development easier, too.
+使用装饰者设计模式也可能增加代码的复杂性。要实现特定组件并使其在运行时可修改，您不仅需要实现组件，还需要添加无限数量的装饰者类来包装它。更多的类有时会令人不知所措，而且通过几个额外的类包装的组件的调试和测试也不会使开发变得更容易。
 
-Let's move to the analysis and implementation parts to understand and learn the details about this pattern and how to implement it!
+让我们继续进行分析和实现部分，以了解有关此模式以及如何实现它的详细信息！
 
-## Analysis
+## 分析
 
-The general structure of the Decorator design pattern looks like this:
+装饰者设计模式的一般结构如下所示：
 
-![Structure of the Decorator design pattern](./img/decorator.png)
+![装饰者设计模式的结构](./img/decorator.png)
 
-- *Component* - defines the interface for objects that can have responsibilities added to them dynamically;
-- *Concrete Component* - defines an object to which additional responsibilities can be added. It contains the basic behaviour which can be altered by decorators;
-- *Base Decorator* - has a field referencing a wrapped object which type should be declared as the component interface so it can contain both concrete components and decorators;
-- *Concrete Decorators* - adds responsibilities (extra behaviour) to the components dynamically;
-- *Client* - initialises the concrete component and wraps it in multiple layers of decorators extending its default behaviour dynamically.
+- *组件（Component）* - 定义可以动态添加责任的对象的接口；
+- *具体组件（Concrete Component）* - 定义可以添加额外责任的对象。它包含基本行为，可以通过装饰者进行修改；
+- *基础装饰者（Base Decorator）* - 具有引用包装对象的字段，其类型应声明为组件接口，以便它可以包含具体组件和装饰者；
+- *具体装饰者（Concrete Decorators）* - 动态添加组件的责任（额外行为）；
+- *客户端（Client）* - 初始化具体组件并将其包装在多个层次的装饰者中，以动态扩展其默认行为。
 
-### Applicability
+### 适用性
 
-The Decorator design pattern should be used when you need to add extra responsibilities to objects dynamically (at run-time) without affecting other objects. Since all the decorator objects implement the same interface, they can be used in various combinations and interchanged with each other.
+装饰者设计模式应用于需要在对象动态添加额外责任（运行时）的情况，而不影响其他对象。由于所有装饰者对象都实现相同的接口，因此可以以各种组合使用它们，并相互替换。
 
-Also, this design pattern is useful when extension by subclassing is impractical or even not possible. For instance, sometimes a large number of independent extensions are possible and would produce a huge number of subclasses to support every combination - for those cases, the Decorator design pattern is a better option.
+此外，当通过子类化扩展变得不切实际甚至不可能时，此设计模式非常有用。例如，有时可以进行大量独立扩展，并且将产生大量子类以支持每种组合 - 对于这些情况，装饰者设计模式是更好的选择。
 
-Finally, the Decorator design pattern could be simply used to refactor the code base and split components with hard-wired extensions (compile-time implementation dependencies) into separate classes. As a result, code becomes more readable/maintainable (there would be less code in smaller classes) and at the same time more flexible.
+最后，装饰者设计模式可以简单地用于重构代码库，将具有硬编码扩展（编译时实现依赖关系）的组件拆分为单独的类。结果，代码变得更易读/易维护（较小的类中将有更少的代码），同时更加灵活。
 
-## Implementation
+## 实现
 
-![Let's do this](./img/lets_do_this.gif)
+![让我们开始吧](./img/lets_do_this.gif)
 
-In the Flutter community, it is quite popular to create food delivery/restaurant type of applications. With the implementation of the Decorator design pattern, we will jump into this _hype train_ and will build a prototype for the pizza delivery application, to be more specific, for the pizza selection from the menu.
+在Flutter社区中，创建食品交付/餐厅类型的应用程序相当流行。通过实现装饰者设计模式，我们将加入这个“炒作”，并为披萨交付应用程序构建原型，更具体地说，是用于从菜单中选择披萨的原型。
 
-Let's say we have a small restaurant which makes 3 kinds of pizza:
+假设我们有一家制作3种披萨的小餐馆：
 
-- Margherita - Sauce, Mozzarella, Basil, Oregano, Pecorino, Olive Oil;
-- Pepperoni - Sauce, Mozzarella, Pepperoni, Oregano;
-- "Make-Your-Own" - any combination of pizza toppings from the list of Basil, Mozzarella, Olive Oil, Oregano, Pecorino, Pepperoni, and Sauce.
+- 玛格丽特披萨 - 酱汁、莫扎里拉、罗勒、牛至、佩克里诺、橄榄油；
+- 香肠披萨 - 酱汁、莫扎里拉、香肠、牛至；
+- “自制披萨” - 从罗勒、莫扎里拉、橄榄油、牛至、佩克里诺、香肠和酱汁的配料列表中选择任何组合。
 
-All the pizzas are of the same size, pizza toppings have different prices.
+所有披萨都是相同大小的，披萨的配料价格不同。
 
-It is quite clear for the pizza Margherita or Pepperoni - the recipe is clear, you just need to add the necessary toppings and calculate the final price, easy peasy. However, for the custom pizza, it would be very impractical to prepare the pre-defined recipes for all the possible combinations - that's just not how it works usually from the business point of view.
+玛格丽特披萨或香肠披萨非常清晰 - 食谱很明确，只需添加必要的配料并计算最终价格，非常简单。但是，对于自定义披萨来说，为所有可能的组合准备预定义的食谱将非常不切实际 - 通常从业务角度来看通常不是这样运作的。
 
-For this problem, the Decorator design pattern is a great option since we can make the pizza toppings as separate decorator classes, use them to wrap the pizza base (the base component) and calculate the final price of the pizza based on the selected toppings. Let's check the class diagram first and then implement the pattern.
+对于这个问题，装饰者设计模式是一个很好的选择，因为我们可以将披萨配料作为单独的装饰者类，使用它们来包装披萨底部（基本组件），并根据选择的配料计算披萨的最终价格。让我们首先查看类图，然后实现该模式。
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Decorator design pattern:
+下面的类图显示了装饰者设计模式的实现：
 
-![Class Diagram - Implementation of the Decorator design pattern](./img/decorator_implementation.png)
+![类图 - 装饰者设计模式的实现](./img/decorator_implementation.png)
 
-`Pizza` defines a common interface for wrappers (decorators) and wrapped objects:
+`Pizza` 定义了包装器（装饰者）和被包装对象的通用接口：
 
-- `getDescription()` - returns the description of the pizza;
-- `getPrice()` - returns the price of the pizza.
+- `getDescription()` - 返回披萨的描述；
+- `getPrice()` - 返回披萨的价格。
 
-`PizzaBase` represents the component object which extends the `Pizza` class and implements its abstract methods.
+`PizzaBase` 表示扩展 `Pizza` 类并实现其抽象方法的组件对象。
 
-`PizzaDecorator` references the `Pizza` object and forwards requests to it via the `getDescription()` and `getPrice()` methods.
+`PizzaDecorator` 引用 `Pizza` 对象，并通过 `getDescription()` 和 `getPrice()` 方法将请求转发给它。
 
-`Basil`, `Mozzarella`, `OliveOil`, `Oregano`, `Pecorino`, `Pepperoni` and `Sauce` are concrete decorators extending the `PizzaDecorator` class and overriding its default behaviour by adding some extra functionality/calculations of their own.
+`Basil`、`Mozzarella`、`OliveOil`、`Oregano`、`Pecorino`、`Pepperoni` 和 `Sauce` 是扩展 `PizzaDecorator` 类的具体装饰者，通过添加自己的额外功能/计算来覆盖其默认行为。
 
-`PizzaToppingData` class stores information about the pizza topping's selection chip used in the UI - its label and whether it is selected or not.
+`PizzaToppingData` 类存储有关用于 UI 中的披萨配料选择芯片的信息 - 其标签以及是否已选择。
 
-`PizzaMenu` class provides a `getPizzaToppingsDataMap()` method to retrieve the pizza topping's selection chip data. Also, `getPizza()` method is defined to return the specific `Pizza` object based on the selected index in the UI or the selected pizza toppings.
+`PizzaMenu` 类提供了 `getPizzaToppingsDataMap()` 方法来检索披萨配料选择芯片数据。此外，定义了 `getPizza()` 方法，根据 UI 中的选定索引或选定的披萨配料返回特定的 `Pizza` 对象。
 
-`DecoratorExample` initialises and contains the `PizzaMenu` class object to retrieve the selected `Pizza` object based on the user's selection in the UI.
+`DecoratorExample` 初始化并包含 `PizzaMenu` 类对象，以根据用户在 UI 中的选择检索选定的 `Pizza` 对象。
 
 ### Pizza
 
-An interface of the `Pizza` component that defines a common contract for concrete components and decorator objects.
+`Pizza` 接口是 `Pizza` 组件的界面，定义了具体组件和装饰器对象的通用契约。
 
 ```dart title="pizza.dart"
 abstract interface class Pizza {
@@ -114,7 +96,7 @@ abstract interface class Pizza {
 
 ### PizzaBase
 
-A concrete component that implements the `Pizza` interface. An object of this class (its behaviour) gets decorated by the specific decorator classes.
+`PizzaBase` 是一个实现了 `Pizza` 接口的具体组件。该类的对象（它的行为）会被特定的装饰器类装饰。
 
 ```dart title="pizza_base.dart"
 class PizzaBase implements Pizza {
@@ -132,7 +114,7 @@ class PizzaBase implements Pizza {
 
 ### PizzaDecorator
 
-An abstract decorator class that maintains a reference to a component class and forwards requests to it.
+`PizzaDecorator` 是一个抽象装饰器类，它维护对组件类的引用，并将请求转发给它。
 
 ```dart title="pizza_decorator.dart"
 abstract class PizzaDecorator implements Pizza {
@@ -148,9 +130,9 @@ abstract class PizzaDecorator implements Pizza {
 }
 ```
 
-### Concrete pizza decorators
+### 具体的披萨装饰器
 
-`Basil`, `Mozzarella`, `OliveOil`, `Oregano`, `Pecorino`, `Pepperoni` and `Sauce` are concrete decorator classes of the `Pizza` component. Each of these classes wraps the pizza object and adds additional value for the final price in the `getPrice()` method, and also extends the final pizza's description in the `getDescription()` method.
+`Basil`、`Mozzarella`、`OliveOil`、`Oregano`、`Pecorino`、`Pepperoni` 和 `Sauce` 是 `Pizza` 组件的具体装饰器类。这些类中的每一个都包装了披萨对象，并在 `getPrice()` 方法中为最终价格添加额外的价值，在 `getDescription()` 方法中扩展了最终披萨的描述。
 
 - Basil:
 
@@ -252,7 +234,7 @@ class Sauce extends PizzaDecorator {
 
 ### PizzaToppingData
 
-A simple class that contains data used by the pizza topping's selection chip in the UI. The data consists of the `label` property and the current selection state (whether the chip is currently selected or not) which could be changed by using the `setSelected()` method.
+这是一个简单的类，包含了在UI中用于披萨配料选择芯片的数据。数据包括 `label` 属性和当前选择状态（芯片当前是否被选中），可以使用 `setSelected()` 方法来更改选择状态。
 
 ```dart title="pizza_topping_data.dart"
 class PizzaToppingData {
@@ -267,7 +249,8 @@ class PizzaToppingData {
 
 ### PizzaMenu
 
-A simple class that provides a map of `PizzaToppingData` objects via the `getPizzaToppingsDataMap()` method for the pizza toppings selection in UI. Also, the class defines a `getPizza()` method which returns a `Pizza` object that is built by using the pre-defined concrete decorator classes based on the pizza recipe - Margherita, Pepperoni or custom (based on the selected pizza toppings).
+这是一个简单的类，通过 `getPizzaToppingsDataMap()` 方法为UI中的披萨配料选择提供了一个 `PizzaToppingData` 对象的映射。此外，该类定义了一个 `getPizza()` 方法，该方法返回一个 `Pizza` 对象，该对象是通过使用预定义的具体装饰器类构建的，根据披萨配方 - Margherita、Pepperoni 或自定义（基于所选的披萨配料）。
+
 
 ```dart title="pizza_menu.dart"
 class PizzaMenu {
@@ -329,15 +312,15 @@ class PizzaMenu {
 }
 ```
 
-This class (to be more specific, `getMargherita()`, `getPepperoni()` and `getCustom()` methods) represents the main idea of the decorator design pattern - a base component class is instantiated and then wrapped by the concrete decorator classes, hence extending the base class and its behaviour. As a result, it is possible to use wrapper classes and add or remove responsibilities from an object at runtime, for instance, as it is used in the `getCustom()` method where the appropriate decorator classes are used based on the selected pizza toppings data in the UI.
+这个类（更具体地说，`getMargherita()`、`getPepperoni()` 和 `getCustom()` 方法）代表了装饰器设计模式的主要思想 - 实例化基本组件类，然后由具体的装饰器类包装，从而扩展基类及其行为。因此，可以在运行时使用包装器类添加或删除对象的职责，例如在 `getCustom()` 方法中使用的方式，该方法根据UI中所选的披萨配料数据使用适当的装饰器类。
 
-## Example
+## 示例
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备并提供一个Markdown文件作为模式的描述：
 
-![Example markdown](./img/example_markdown.gif)
+![示例Markdown](./img/example_markdown.gif)
 
-`DecoratorExample` contains the `PizzaMenu` object which is used to get the specific `Pizza` object based on the user's selection. Also, all the logic related to the decorator's design pattern and its implementation is extracted to the `PizzaMenu` class, the `DecoratorExample` widget only uses it to retrieve the necessary data to be represented in the UI.
+`DecoratorExample` 包含 `PizzaMenu` 对象，该对象用于根据用户的选择获取特定的 `Pizza` 对象。此外，与装饰器设计模式及其实现相关的所有逻辑都被提取到了 `PizzaMenu` 类中，`DecoratorExample` widget 仅使用它来检索在UI中表示的必要数据。
 
 ```dart title="decorator_example.dart"
 class DecoratorExample extends StatefulWidget {
@@ -419,14 +402,12 @@ class _DecoratorExampleState extends State<DecoratorExample> {
 }
 ```
 
-The final result looks like this:
+最终的结果如下所示：
 
 ![Decorator example](./img/example.gif)
 
-As you can see in the example when selecting any of the pre-defined recipes, the final price of the pizza is recalculated as well as the description of its toppings is provided. Also, for the custom pizza, the price is recalculated every time a topping is selected or deselected, and the pizza's description is updated, too.
+正如您在示例中看到的，当选择任何预定义的披萨配方时，披萨的最终价格会重新计算，同时提供了其配料的描述。对于定制披萨，每次选择或取消选择一种配料时，都会重新计算价格，并且还会更新披萨的描述。
 
-All of the code changes for the Decorator design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/17).
+装饰器设计模式及其示例实现的所有代码更改都可以在[此处](https://github.com/mkobuolys/flutter-design-patterns/pull/17)找到.
 
-:::tip
-To see the pattern in action, check the [interactive Decorator example](https://flutterdesignpatterns.com/pattern/decorator).
-:::
+要查看该模式的实际效果，请查看[interactive Decorator example](https://flutterdesignpatterns.com/pattern/decorator).

@@ -1,93 +1,77 @@
----
-slug: flutter-design-patterns-15-proxy
-title: "Flutter Design Patterns: Proxy"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
-
-_An overview of the Proxy design pattern and its implementation in Dart and Flutter_
+## 代理设计模式及其在Dart和Flutter中的实现概述
 
 ![Header image](./img/header.png)
 
-In the last [article](../2020-01-23-flutter-design-patterns-14-prototype/index.md), I analysed a relatively simple design pattern compared to the other patterns in the series - Prototype. In this article, I would like to analyse and implement a structural design pattern that is very practical and could be used in a lot of cases when developing applications with Dart and Flutter - it is a Proxy.
+要查看所有设计模式的示例，请查看[Flutter Design Patterns应用程序](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
+## 什么是代理设计模式？
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+![让我来处理](./img/handle_it.jpeg)
 
-## What is the Proxy design pattern?
+**代理**，也称为**替代**，属于结构性设计模式的一种。这种设计模式的意图在[GoF书籍](https://en.wikipedia.org/wiki/Design_Patterns)中描述如下：
 
-![Let me handle it](./img/handle_it.jpeg)
 
-**Proxy**, also known as **Surrogate**, belongs to the category of structural design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+> _为另一个对象提供一个替代品或占位符以控制对它的访问。_
 
-> _Provide a surrogate or placeholder for another object to control access to it._
+这个模式中的关键思想是通过一个单独的代理对象来访问已存在的对象时执行附加功能。例如，在访问对象之前应该验证用户的权限，或者对象的创建非常昂贵，因此推迟其创建直到实际需要它为止。此外，如果需要在类的主要逻辑之前或之后执行某些操作，代理使您能够在不更改该类的情况下执行这些操作。由于代理实现了与原始类相同的接口，因此可以将其传递给期望真实服务对象的任何客户端。
 
-The key idea in this pattern is to work through a separate proxy object that performs additional functionality when accessing an (already existing) object. For instance, the user's rights should be validated before accessing the object or the object's creation is very expensive so it makes sense to defer its creation until the object is actually needed. Also, if you need to execute something either before or after the primary logic of the class, the proxy lets you do this without changing that class. Since the proxy implements the same interface as the original class, it can be passed to any client that expects a real service object.
+为了更好地理解代理设计模式，让我们深入分析其结构、类型和更详细的实现！
 
-To understand the Proxy design pattern better, let's dive in by analysing its structure, types and implementation in more detail!
+## 分析
 
-## Analysis
+代理设计模式的一般结构如下：
 
-The general structure of the Proxy design pattern looks like this:
+![代理设计模式的结构](./img/proxy.png)
 
-![Structure of the Proxy design pattern](./img/proxy.png)
+- *ServiceInterface* - 为_Service_和_Proxy_定义了通用接口，代理服务可以替代真实服务；
+- *Service* - 定义了真实对象，其中包含一些有用的业务逻辑。这是代理所代表的服务；
+- *Proxy* - 实现了与真实服务相同的接口。还具有一个引用字段，指向服务对象，允许控制对它的访问。_Proxy_类可能负责创建和删除真实服务对象；
+- *Client* - 应该通过相同的接口与服务和代理一起工作。这样，您可以将代理传递给任何期望真实服务对象的代码。
 
-- *ServiceInterface* - defines the common interface for _Service_ and _Proxy_ that the proxy service could be used instead of the real one;
-- *Service* - defines the real object which contains some useful business logic. This is the service that the proxy represents;
-- *Proxy* - implements the same interface as the real service. Also, has a reference field that points to a service object which allows controlling access to it. The _Proxy_ class may be responsible for creating and deleting the real service's object;
-- *Client* - should work with both services and proxies via the same interface. This way you can pass a proxy into any code that expects a service object.
+### 适用性
 
-### Applicability
+有许多使用代理模式的方式：
 
-There are dozens of ways to utilize the Proxy pattern:
+- 懒加载（虚拟代理） - 与其在应用程序启动时创建对象，不如将对象的初始化延迟到实际需要时；
+- 访问控制（保护代理） - 代理只有在客户端的凭据与某些标准匹配时才能将请求传递给服务对象；
+- 本地执行远程服务（远程代理） - 代理将客户端请求传递到网络上的远程服务，处理与网络一起工作的所有棘手细节；
+- 记录请求（日志代理） - 代理可以在将请求传递给服务之前记录每个请求；
+- 缓存请求结果（缓存代理） - 代理可以为重复请求实现缓存，这些请求总是产生相同的结果。代理可以使用请求的参数作为缓存键。
 
-- Lazy initialization (**virtual proxy**) - instead of creating the object when the app launches, you can delay the object's initialization to a time when it's really needed;
-- Access control (**protection proxy**) - the proxy can pass the request to the service object only if the client's credentials match some criteria;
-- Local execution of a remote service (**remote proxy**) - the proxy passes the client request over the network, handling all of the nasty details of working with the network;
-- Logging requests (**logging proxy**) - the proxy can log each request before passing it to the service;
-- Caching request results (**caching proxy**) - the proxy can implement caching for recurring requests that always yield the same results. The proxy may use the parameters of requests as the cache keys.
-
-## Implementation
+## 实现
 
 ![I'm ready](./img/i_am_ready.gif)
 
-For the following example of the Proxy design pattern, we will implement the **caching proxy**.
+对于代理设计模式的以下示例，我们将实现**缓存代理**。
 
-In my opinion, in any application which loads resources from an external service, it is quite a common problem to improve the performance and reduce load times of the data. It is possible to optimise and at least partially resolve it by implementing the caching layer.
+在我看来，在任何从外部服务加载资源的应用程序中，提高性能并减少数据加载时间是一个相当常见的问题。可以通过实现缓存层来优化和至少部分解决这个问题。
 
-Let's say we have a list of customers with some basic information - the customer's id and name. Any additional customer data should be loaded from an external web service. When providing the general list of customers, additional information is not loaded nor used. However, it could be accessed by selecting a specific customer and loading its data from the customer details service. To reduce the number of requests sent to the external service, it makes sense to introduce a caching layer to the application and provide the already loaded information from the cache for future requests.
+假设我们有一个包含一些基本信息的客户列表，例如客户的ID和姓名。不会加载任何附加的客户数据，也不会使用它。然而，通过选择特定的客户并从客户详细信息服务加载其数据，可以访问它。为了减少发送到外部服务的请求数量，引入应用程序的缓存层并为未来的请求提供从缓存加载的已加载信息是有意义的。
 
-To achieve this, the Proxy design pattern is a great choice! Let's check the class diagram first and then implement a proxy for the customer details service.
+要实现这一点，代理设计模式是一个不错的选择！让我们首先查看类图，然后为客户详细信息服务实现一个代理。
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Proxy design pattern:
+下面的类图展示了代理设计模式的实现：
 
-![Class Diagram - Implementation of the Proxy design pattern](./img/proxy_implementation.png)
+![类图 - 代理设计模式的实现](./img/proxy_implementation.png)
 
-`Customer` class is used to store information about the customer. One of its properties is `CustomerDetails` which stores additional data about the customer e.g. its email, hobby and position.
+`Customer` 类用于存储有关客户的信息。其中一个属性是 `CustomerDetails`，它存储有关客户的附加数据，例如电子邮件、爱好和职位。
 
-`ICustomerDetailsService` defines an interface for the customer details service:
+`ICustomerDetailsService` 定义了客户详细信息服务的接口：
 
-- `getCustomerDetails()` - returns details for the specific customer.
+- `getCustomerDetails()` - 返回特定客户的详细信息。
 
-`CustomerDetailsService` is the "real" customer details service that implements the `ICustomerDetailsService` interface.
+`CustomerDetailsService` 是实际的客户详细信息服务，它实现了 `ICustomerDetailsService` 接口。
 
-`CustomerDetailsServiceProxy` is a proxy service that contains the cache (dictionary object) and sends the request to the real `CustomerDetailsService` only if the customer details object is not available in the cache.
+`CustomerDetailsServiceProxy` 是一个代理服务，它包含缓存（字典对象）并仅在客户详细信息对象在缓存中不可用时才将请求发送到实际的 `CustomerDetailsService`。
 
-`ProxyExample` initialises and contains the proxy object of the real customer details service. When a user selects the option to see more details about the customer, the dialog window appears and loads details about the customer. If the details object is already stored inside the cache, the proxy service returns that object instantly. Otherwise, a request is sent to the real customer details service and the details object is returned from there.
+`ProxyExample` 初始化并包含实际客户详细信息服务的代理对象。当用户选择查看有关客户的更多详细信息的选项时，对话框窗口会出现并加载有关客户的详细信息。如果详细信息对象已存储在缓存中，代理服务会立即返回该对象。否则，将向实际客户详细信息服务发送请求，并从那里返回详细信息对象。
 
 ### Customer
 
-A simple class to store information about the customer: its id, name and details. Also, the constructor generates random id and name values when initialising the Customer object.
+一个用于存储有关客户信息的简单类：其ID、姓名和详细信息。此外，构造函数在初始化 `Customer` 对象时生成随机的ID和姓名值。
+
 
 ```dart title="customer.dart"
 class Customer {
@@ -103,7 +87,8 @@ class Customer {
 
 ### CustomerDetails
 
-A simple class to store information about customer details: id to map the details information with the corresponding customer, e-mail address, hobby and the current position (job title).
+一个用于存储客户详细信息的简单类：包括ID以将详细信息与相应的客户映射、电子邮件地址、爱好和当前职位（职称）。
+
 
 ```dart title="customer_details.dart"
 class CustomerDetails {
@@ -123,7 +108,7 @@ class CustomerDetails {
 
 ### ICustomerDetailsService
 
-An interface that defines the `getCustomerDetails()` method to be implemented by the customer details service and its proxy.
+一个接口，定义了`getCustomerDetails()`方法，该方法将由客户详细信息服务及其代理来实现。
 
 ```dart title="icustomer_details_service.dart"
 abstract interface class ICustomerDetailsService {
@@ -133,7 +118,7 @@ abstract interface class ICustomerDetailsService {
 
 ### CustomerDetailsService
 
-A specific implementation of the `ICustomerDetailsService` interface - the real customer details service. The `getCustomerDetails()` method mocks the real behaviour of the service and generates random values of customer details.
+`ICustomerDetailsService`接口的具体实现，即真实的客户详细信息服务。`getCustomerDetails()`方法模拟了服务的实际行为，并生成了客户详细信息的随机值。
 
 ```dart title="customer_details_service.dart"
 class CustomerDetailsService implements ICustomerDetailsService {
@@ -154,7 +139,8 @@ class CustomerDetailsService implements ICustomerDetailsService {
 
 ### CustomerDetailsServiceProxy
 
-A specific implementation of the `ICustomerDetailsService` interface - a proxy for the real customer details service. Before making a call to the customer details service, the proxy service checks whether the customer details are already fetched and saved in the cache. If yes, the customer details object is returned from the cache, otherwise, a request is sent to the real customer service and its value is saved to the cache and returned.
+`ICustomerDetailsService`接口的具体实现，即真实客户详细信息服务的代理。在调用客户详细信息服务之前，代理服务会检查客户详细信息是否已经被获取并保存在缓存中。如果是，代理将从缓存中返回客户详细信息对象；否则，它会向真实客户服务发送请求，将其值保存到缓存中并返回。
+
 
 ```dart title="customer_details_service_proxy.dart"
 class CustomerDetailsServiceProxy implements ICustomerDetailsService {
@@ -175,13 +161,14 @@ class CustomerDetailsServiceProxy implements ICustomerDetailsService {
 }
 ```
 
-## Example
+## 示例
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个Markdown文件，作为模式的描述：
 
-![Example markdown](./img/example_markdown.gif)
+![示例Markdown](./img/example_markdown.gif)
 
-`ProxyExample` contains the proxy object of the real customer details service. When the user wants to see customer details, the `showDialog()` method is triggered (via the `showCustomerDetails()` method) which opens the dialog window of type `CustomerDetailsDialog` and passes the proxy object via its constructor as well as the selected customer's information - the `Customer` object.
+`ProxyExample` 包含了真实客户详细信息服务的代理对象。当用户想要查看客户详细信息时，会触发 `showDialog()` 方法（通过 `showCustomerDetails()` 方法触发），该方法打开了类型为 `CustomerDetailsDialog` 的对话框窗口，并通过其构造函数传递代理对象以及所选客户的信息 - `Customer` 对象。
+
 
 ```dart title="proxy_example.dart"
 class ProxyExample extends StatefulWidget {
@@ -245,7 +232,7 @@ class _ProxyExampleState extends State<ProxyExample> {
 }
 ```
 
-The `CustomerDetailsDialog` class uses the passed proxy service on its state's initialisation, hence loading details of the selected customer.
+`CustomerDetailsDialog` 类在其状态初始化时使用传递的代理服务，因此加载所选客户的详细信息。
 
 ```dart title="customer_details_dialog.dart"
 class CustomerDetailsDialog extends StatefulWidget {
@@ -310,14 +297,10 @@ class _CustomerDetailsDialogState extends State<CustomerDetailsDialog> {
 }
 ```
 
-The `CustomerDetailsDialog` class does not care about the specific type of customer details service as long as it implements the `ICustomerDetailsService` interface. As a result, an additional caching layer could be used by sending the request through the proxy service, hence improving the general performance of the application, possibly saving some additional network data and reducing the number of requests sent to the real customer details service as well. Also, if you want to call the real customer details service directly, you can just simply pass it via the `CustomerDetailsDialog` constructor - no additional changes are needed in the UI code since both the real service and its proxy implements the same interface.
+`CustomerDetailsDialog` 类并不关心客户详情服务的具体类型，只要它实现了 `ICustomerDetailsService` 接口。因此，可以通过代理服务发送请求来使用额外的缓存层，从而提高应用程序的性能，可能节省一些额外的网络数据，并减少发送到真实客户详情服务的请求数量。另外，如果您想直接调用真实的客户详情服务，只需通过 `CustomerDetailsDialog` 构造函数简单地传递它 - UI 代码无需额外更改，因为真实服务及其代理都实现了相同的接口。
 
-![Proxy example](./img/example.gif)
+如示例所示，当首次尝试加载特定客户的详细信息时，需要一些时间从服务中加载信息。但是，当再次访问相同的信息时，它是从代理服务中存储的缓存中提供的，因此请求不会发送到真实的客户详情服务 - 客户详细信息会立即提供。
 
-As you can see in the example, when trying to load the specific customer's details for the first time, it takes some time for the information to load from the service. However, when the same information is accessed once again, it is provided from the cache stored in the proxy service, hence the request is not sent to the real customer details service - the customer details information is provided instantly.
+Proxy 设计模式及其示例实现的所有代码更改都可以在[此处](https://github.com/mkobuolys/flutter-design-patterns/pull/16)找到。
 
-All of the code changes for the Proxy design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/16).
-
-:::tip
-To see the pattern in action, check the [interactive Proxy example](https://flutterdesignpatterns.com/pattern/proxy).
-:::
+要查看此模式的实际应用，请查看[交互式 Proxy 示例](https://flutterdesignpatterns.com/pattern/proxy)。

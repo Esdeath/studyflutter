@@ -25,3 +25,10 @@
 
 [12.命令模式](design_patterns/12-command/index.md)
 
+[13.备忘录模式](design_patterns/13-memento/index.md)
+
+[14.原型模式](design_patterns/14-prototype/index.md)
+
+[15.代理模式](design_patterns/15-proxy/index.md)
+
+[16.装饰器模式](design_patterns/16-decorator/index.md)

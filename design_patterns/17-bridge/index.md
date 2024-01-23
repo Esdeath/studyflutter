@@ -1,69 +1,52 @@
----
-slug: flutter-design-patterns-17-bridge
-title: "Flutter Design Patterns: Bridge"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
+### Bridge 设计模式概述
 
-_An overview of the Bridge design pattern and its implementation in Dart and Flutter_
+![标题图片](./img/header.png)
 
-![Header image](./img/header.png)
+想要查看所有设计模式的实际应用，请访问 [Flutter 设计模式应用程序](https://flutterdesignpatterns.com/)。
 
-In the last [article](../2020-02-28-flutter-design-patterns-16-decorator/index.md), I analysed a structural design pattern that provides a way of *changing the skin of an object without changing its guts* - Decorator. In this article, I would like to analyse and implement another structural design pattern that tends to be relatively difficult to understand compared to the other design patterns, but at the same time is practical and useful - it is Bridge.
+## 什么是 Bridge（桥接）设计模式？
 
-<!--truncate-->
+![一只狗和它的橡胶鸡跳过桥的图片](./img/jump_over_bridge.jpeg)
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+**Bridge（桥接）**，也被称为 **Handle/Body（处理/体）**，属于结构型设计模式的一种。在 [GoF 的书籍](https://en.wikipedia.org/wiki/Design_Patterns)中，该设计模式的目的被描述为：
 
-## What is the Bridge design pattern?
+> _将抽象与其实现分离，使两者可以独立变化。_
 
-![Just a dog and its rubber chicken jumping over the bridge](./img/jump_over_bridge.jpeg)
+通常，抽象要有几种可能的实现方式，使用的方法是继承 — 抽象定义接口，而具体的子类以不同的方式实现它。然而，这种方法并不灵活，因为它在编译时就将实现与抽象绑定，使得在运行时无法更改实现。如果我们想在运行时选择并交换实现呢？
 
-**Bridge**, also known as **Handle/Body**, belongs to the category of structural design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+Bridge 设计模式将抽象与其实现分离，使两者可以独立变化。在这种情况下，抽象使用另一个抽象作为其实现，而不是直接使用实现。这种抽象与其实现（更具体地说，是另一个抽象）之间的关系被称为桥接 — 它连接了抽象与其实现，让它们可以独立变化。
 
-> _Decouple an abstraction from its implementation so that the two can vary independently._
+如果 _Abstraction（抽象）_ 和 _Implementation（实现）_ 这些术语听起来太学术化，那么可以这样想象：抽象（或接口）只是某个特定实体的高层层次。这一层只是一个接口，本身并不做任何实际工作 — 它应该将工作委托给实现层。这方面的一个很好的例子是 GUI（图形用户界面）和 OS（操作系统）。GUI 只是用户与操作系统交流的顶层层次，但它本身并不进行任何实际工作 — 它只是将用户命令（事件）传递给平台。重要的是，无论是 GUI 还是 OS 都可以彼此独立扩展，例如，桌面应用程序可能有不同的视图/面板/仪表板，同时支持多个 API（可以在 Windows、Linux 和 macOS 上运行） — 这两部分可以独立变化。听起来像是 Bridge 设计模式，对吗？
 
-The usual way for an abstraction to have one of several possible implementations is to use inheritance - an abstraction defines the interface while concrete subclasses implement it in different ways. However, this approach is not very flexible since it binds the implementation to abstraction at compile-time and makes it impossible to change the implementation at run-time. What if we want the implementation to be selected and exchanged at run-time?
+## 分析
 
-The Bridge design pattern separates an abstraction from its implementation so that the two can vary independently from each other. In this case, the abstraction uses another abstraction as its implementation instead of using the implementation directly. This relationship between an abstraction and its implementation (well, another abstraction, to be more specific) is called a _bridge - it bridges the abstraction and its implementation, letting them vary independently_.
+Bridge 设计模式的总体结构如下所示：
 
-If the _Abstraction_ and _Implementation_ terms sound too academic to you, imagine this: abstraction (or interface) is just a high-level layer for some particular entity. This layer is just an interface that is not supposed to do any real work on its own - it should delegate the work to the implementation layer. A good example of this is a GUI (graphical user interface) and OS (operating system). GUI is just a top-level layer for the user to communicate with the operating system, but it does not do any real work by itself - it just passes user commands (events) to the platform. And what is important about this, both GUI and OS could be extended separately from each other, e.g. a desktop application could have different views/panels/dashboards and at the same time support several APIs (could be run on Windows, Linux and macOS) - these two parts could vary independently. Sounds like a Bridge design pattern, right?
+![Bridge 设计模式的结构](./img/bridge.png)
 
-## Analysis
+- *Abstraction（抽象）* - 定义了抽象的接口，并维护一个类型为 _Implementation（实现）_ 的对象的引用；
+- *Refined Abstraction（精化抽象）* - 实现了 _Abstraction_ 接口，并提供了控制逻辑的不同变体；
+- *Implementation（实现）* - 为实现类定义了一个接口。_Abstraction_ 只能通过声明在这里的方法与 _Implementation_ 对象进行通信；
+- *Concrete Implementations（具体实现）* - 实现了 _Implementation_ 接口，并包含了特定于平台的代码。
 
-The general structure of the Bridge design pattern looks like this:
+### 适用性
 
-![Structure of the Bridge design pattern](./img/bridge.png)
+当你想要分割一个包含了功能多个变体的单一类时，应该使用 Bridge 设计模式。这种情况下，该模式允许将类拆分为几个类层次结构，它们可以独立变化 — 这简化了代码维护，并且较小的类减少了破坏现有代码的风险。这种方法的一个好例子是，当你想在持久化层中使用多种不同的方法，例如同时使用数据库和文件系统持久化。
 
-- *Abstraction* - defines an interface for the abstraction and maintains a reference to an object of type _Implementation_;
-- *Refined abstraction* - implements the _Abstraction_ interface and provides different variants of control logic;
-- *Implementation* - defines an interface for the implementation classes. An _Abstraction_ can only communicate with an _Implementation_ object via methods that are declared there;
-- *Concrete implementations* - implement the _Implementation_ interface and contain platform-specific code.
+此外，当抽象及其实现都需要通过子类化进行扩展时，也应该使用桥接设计模式 — 该模式允许结合不同的抽象和实现，并独立地扩展它们。
 
-### Applicability
+最后，当你需要在运行时切换实现时，桥接设计模式是救星。该模式允许你在抽象内部替换实现对象 — 你可以通过构造器注入它，或者仅将其作为字段/属性的新值赋值。
 
-The Bridge design pattern should be used when you want to divide a monolithic class that has several variants of some functionality. In this case, the pattern allows splitting the class into several class hierarchies which could be changed independently - it simplifies code maintenance, and smaller classes minimize the risk of breaking existing code. A good example of this approach is when you want to use several different approaches in the persistence layer e.g. both database and file system persistence.
+## 实现
 
-Also, the bridge design pattern should be used when both the abstractions and their implementations should be extensible by subclassing - the pattern allows combining different abstractions and implementations and extending them independently.
+![我们开始工作吧](./img/lets_get_to_work.gif)
 
-Finally, the bridge design pattern is a lifesaver when you need to be able to switch implementations at run-time. The pattern lets you replace the implementation object inside the abstraction - you can inject it via the constructor or just assign it as a new value to a field/property.
+在实现部分，我们将使用 Bridge 设计模式实现我们示例的持久化层。
 
-## Implementation
+假设你的应用程序使用外部 SQL 数据库（不是设备中的本地 SQLite 选项，而是云端的）。一切都很好，直到突然出现连接问题。这种情况下，有两个选择：不允许用户使用应用程序并提供一个有趣的“连接丢失”屏幕，或者你可以将数据存储在某种本地存储中，并在连接恢复后同步数据。显然，第二种方法更加用户友好，但如何实现呢？
 
-![Let's get to work](./img/lets_get_to_work.gif)
+在持久化层中，有多个针对每种实体类型的仓库。这些仓库共享一个公共接口 — 这就是我们的抽象。如果你想在运行时更改存储类型（使用本地或云端存储），这些仓库不能引用特定的存储实现，它们应该使用不同类型存储之间共享的某种抽象。好吧，我们可以在此基础上构建另一个抽象（接口），然后由特定存储实现。现在我们将我们的仓库抽象与存储的接口连接起来 — 就是这样，Bridge 设计模式就被引入到我们的应用程序中了！让我们先看一下类图，然后再探究一些实现细节。
 
-For the implementation part, we will implement the persistence layer for our example using the Bridge design pattern.
-
-Let's say your application uses the external SQL database (not the local SQLite option in your device, but the cloud one). Everything is fine until the wild connection problems appear. In this case, there are two options: you are not allowing users to use the application and provide a funny _connection lost_ screen or you can store the data in some kind of local storage and synchronise the data later when the connection is up again. Obviously, the second approach is more user-friendly, but how to implement it?
-
-In the persistence layer, there are multiple repositories for each entity type. The repositories share a common interface - that is our abstraction. If you want to change the storage type (to use the local or cloud one) at run-time, these repositories could not reference the specific implementation of the storage, they should use some kind of abstraction shared between different types of storage. Well, we can build another abstraction (interface) on top of that which is then implemented by the specific storage. Now we connect our repositories' abstraction with the storages' interface - *voilà*, that is how the Bridge design pattern is introduced into our application! Let's check the class diagram first and then investigate some implementation details.
 
 ### Class diagram
 

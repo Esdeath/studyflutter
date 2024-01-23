@@ -104,7 +104,7 @@ class Shape {
 
 ### ICommand
 
-An interface that defines methods to be implemented by the specific command classes.
+一个定义特定命令类应实现的方法的接口。
 
 ```dart title="icommand.dart"
 abstract interface class ICommand {
@@ -115,7 +115,7 @@ abstract interface class ICommand {
 
 ### RandomisePropertiesCommand
 
-A specific implementation of the command that sets all the properties of the `Shape` object stored in the `Originator` to random values. Also, the class implements the `undo` operation.
+一种特定的命令实现，将存储在 `Originator` 中的 `Shape` 对象的所有属性设置为随机值。此类还实现了 `undo` 操作。
 
 ```dart title="randomise_properties_command.dart"
 class RandomisePropertiesCommand implements ICommand {
@@ -146,7 +146,8 @@ class RandomisePropertiesCommand implements ICommand {
 
 ### CommandHistory
 
-A simple class that stores a list of already executed commands. Also, this class provides the `isEmpty` getter method to return true if the command history list is empty. A new command could be added to the command history list via the `add()` method and the last command could be undone using the `undo()` method (if the command history list is not empty).
+一个简单的类，存储已执行命令的列表。此类还提供了 `isEmpty` 获取方法，如果命令历史列表为空则返回 true。新命令可以通过 `add()` 方法添加到命令历史列表中，如果命令历史列表不为空，可以使用 `undo()` 方法撤销最后一个命令。
+
 
 ```dart title="command_history.dart"
 class CommandHistory {
@@ -166,7 +167,7 @@ class CommandHistory {
 
 ### IMemento
 
-An interface that defines the `getState()` method to be implemented by the specific Memento class.
+一个定义 `getState()` 方法的接口，由特定的备忘录类实现。
 
 ```dart title="imemento.dart"
 abstract interface class IMemento {
@@ -176,7 +177,8 @@ abstract interface class IMemento {
 
 ### Memento
 
-An implementation of the `IMemento` interface which stores the snapshot of `Originator's` internal state (`Shape` object). The state is accessible to the `Originator` via the `getState()` method.
+实现 `IMemento` 接口的类，存储 `Originator` 内部状态（`Shape` 对象）的快照。状态可以通过 `getState()` 方法供 `Originator` 访问。
+
 
 ```dart title="memento.dart"
 class Memento implements IMemento {
@@ -191,7 +193,7 @@ class Memento implements IMemento {
 
 ### Originator
 
-A class that defines a `createMemento()` method to save the current internal state to a `Memento` object.
+一个定义 `createMemento()` 方法的类，用于将当前内部状态保存到一个 `Memento` 对象中。
 
 ```dart title="originator.dart"
 class Originator {
@@ -207,11 +209,11 @@ class Originator {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个 markdown 文件并作为模式描述提供：
 
-![Example markdown](./img/example_markdown.gif)
+![示例 markdown](./img/example_markdown.gif)
 
-`MementoExample` contains `CommandHistory` and `Originator` objects. Also, this widget contains a `PlatformButton` component which uses the `RandomisePropertiesCommand` to randomise property values of the shape. After the command's execution, it is added to the command history list stored in the `CommandHistory` object. If the command history is not empty, the _Undo_ button is enabled and the last command could be undone.
+`MementoExample` 包含 `CommandHistory` 和 `Originator` 对象。此组件还包含一个 `PlatformButton` 组件，它使用 `RandomisePropertiesCommand` 来随机化形状的属性值。命令执行后，它被添加到存储在 `CommandHistory` 对象中的命令历史列表中。如果命令历史不为空，_撤销_ 按钮将被启用，可以撤销最后一个命令。
 
 ```dart title="memento_example.dart"
 class MementoExample extends StatefulWidget {
@@ -273,16 +275,14 @@ class _MementoExampleState extends State<MementoExample> {
 }
 ```
 
-As you can see in this example, the client code (UI elements, command history, etc.) isn't coupled to any specific command class because it works with it via the `ICommand` interface.
+正如您在这个示例中看到的，客户端代码（UI 元素、命令历史等）并没有与任何特定的命令类耦合，因为它通过 `ICommand` 接口与命令交互。
 
-In addition to what the Command design pattern provides to this example, the Memento design pattern adds an additional layer to the example's state. It is stored inside the `Originator` object, the command itself does not mutate the state directly but through the `Originator`. Also, the backup (state's snapshot) stored inside the `Command` is a `Memento` object and not the state (`Shape` object) itself - in case of the state's restore (undo is triggered on the command), the specific command calls the `restore()` method on the `Originator` which restores its internal state to the value stored in the snapshot. Hence, it allows restoring multiple property values (a whole complex state object) in a single request, while the state itself is completely separated from the command's code or UI logic.
+除了命令设计模式为这个示例提供的功能外，备忘录设计模式还为示例的状态添加了额外的层。状态存储在 `Originator` 对象内部，命令本身不直接改变状态，而是通过 `Originator`。此外，存储在 `Command` 内部的备份（状态快照）是一个 `Memento` 对象，而不是状态（`Shape` 对象）本身 - 如果触发了状态恢复（命令上的撤销操作），特定命令会调用 `Originator` 上的 `restore()` 方法，将其内部状态恢复到快照中存储的值。因此，它允许在单个请求中恢复多个属性值（一个复杂的状态对象），同时状态本身完全与命令的代码或UI逻辑分离。
 
-![Memento example](./img/example.gif)
+![备忘录示例](./img/example.gif)
 
-As you can see in the example, when the command is executed, under the hood the snapshot of the originator's internal state is stored which could be restored later by executing the undo operation on the command.
+正如您在示例中看到的，当命令执行时，实际上存储了发起人内部状态的快照，稍后可以通过在命令上执行撤销操作来恢复。
 
-All of the code changes for the Memento design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/14).
+所有备忘录设计模式及其示例实现的代码更改可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/14)找到。
 
-:::tip
-To see the pattern in action, check the [interactive Memento example](https://flutterdesignpatterns.com/pattern/memento).
-:::
+要查看模式的实际应用，请查看[交互式备忘录示例](https://flutterdesignpatterns.com/pattern/memento)。
