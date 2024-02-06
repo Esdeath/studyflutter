@@ -1,112 +1,94 @@
----
-slug: flutter-design-patterns-21-visitor
-title: "Flutter Design Patterns: Visitor"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
+_访问者设计模式及其在 Dart 和 Flutter 中的实现概述_
 
-_An overview of the Visitor design pattern and its implementation in Dart and Flutter_
+![头图](./img/header.png)
 
-![Header image](./img/header.png)
+要查看所有设计模式的实际应用，请查看 [Flutter 设计模式应用程序](https://flutterdesignpatterns.com/)。
 
-In the last [article](../2020-10-22-flutter-design-patterns-20-chain-of-responsibility/index.md), I analysed a behavioural design pattern that enables loose coupling between the sender of a request and its receiver - the Chain of Responsibility. In this article, I would like to analyse and implement another behavioural design pattern that lets you separate algorithms from the objects on which they operate - it is Visitor.
+## 什么是访问者设计模式？
 
-<!--truncate-->
+![应用访问者设计模式的类组件示意图](./img/unexpected_visitor.png)
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+**访问者**属于**行为型**设计模式的类别。这个设计模式的意图在 [GoF 书](https://en.wikipedia.org/wiki/Design_Patterns)中有描述：
 
-## What is the Visitor design pattern?
+> _代表要在对象结构的元素上执行的操作。访问者让你定义一个新的操作，而无需更改操作所作用的元素的类。_
 
-![Class component with applied Visitor design pattern be like](./img/unexpected_visitor.png)
+假设我们有一个复杂的对象结构，可能是树或集合，它由几个不同的类组件组成。现在，我们想在不改变这些组件的类的情况下，为这些组件添加某种新功能——这甚至可能吗？
 
-**Visitor** belongs to the category of **behavioural** design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+这里的关键思想是为每个特定的复杂对象类定义一个双重调度操作（在访问者设计模式的上下文中，该操作被称为 _accept_）——我知道，你可能会认为我对你说谎了，关于在不更改现有代码的情况下添加新操作，但请等等，这么做是有充分理由的！当客户端遍历对象结构时，每个元素上都会调用 _accept_ 方法，将请求委托给作为参数传递给该方法的特定 _visitor_ 对象。然后，调用访问者对象的特定方法（请求被委托），从而执行实际的请求。这就是双重调度操作的主要思想——客户端向组件发送请求，而组件将请求委托给特定访问者的方法。这意味着，只需在组件类中实现单个方法，然后通过添加新的访问者，就可以简单地定义对象结构上的新操作。而这一次，你可以实现任意多个不同的访问者类，而不需要更改现有代码！这多酷啊？
 
-> _Represent an operation to be performed on the elements of an object structure. Visitor lets you define a new operation without changing the classes of the elements on which it operates._
+此外，访问者设计模式允许将相关操作聚集到单个类中，而不是将实现细节分散到整个对象结构中。这在你想要在遍历对象结构时累积状态时很有帮助——因为状态存储在访问者对象本身中，并且可以被所有特定访问者方法访问，所以无需将状态传递给执行累积的操作。
 
-Let's say we have a complex object structure, maybe it is a tree or collection, that consists of several different class components. Now, we want to add some kind of new functionality to these components without changing the classes themselves - is that even possible?
+起初，所有的 _visitor_、_accept_、_double-dispatch_ 术语可能看起来令人困惑——别担心，当你看到访问者设计模式在实践中时，一切会变得更清晰。让我们进入分析和实现部分，以了解这个模式的细节并学习如何实现它！
 
-The key idea here is to define a double-dispatch operation (in the Visitor design pattern's context, the operation is called _accept_) for each specific complex object class - I know, you could think that I lied to you about adding new operations without changing the existing code, but wait, there is a good reason for that! When clients traverse the object structure, the _accept_ method is called on each element to delegate the request to the specific _visitor_ object, which is passed to the method as a parameter. Then, the specific method of the visitor object is called (the request is delegated), hence performing the actual request. That's the main idea of a double-dispatch operation - the client sends the request to the component, while the component delegates the request to the specific visitor's method. It means, that it is enough to implement a single method to the component class and then you can define a new operation over an object structure simply by adding a new visitor. And this time, you could implement as many different visitor classes as you want without changing the existing code! How cool is that?
+## 分析
 
-Also, the Visitor design pattern allows gathering related operations into a single class without spreading the implementation details across the whole object structure. That helps when you want to accumulate a state while traversing an object structure - there is no need to pass the state to operations that perform the accumulation since the state is stored in the visitor object itself and is accessible by all the specific visitor methods.
+访问者设计模式的一般结构如下所示：
 
-At first, all the _visitor_, _accept_, _double-dispatch_ terms could look confusing - don't worry, it gets much clearer when you see the Visitor design pattern in action. Let's move to the analysis and implementation parts to understand and learn the details about this pattern and how to implement it!
+![访问者设计模式的结构](./img/visitor.png)
 
-## Analysis
+- *Visitor*——为对象结构中的每个 _concrete element_ 类声明一个访问操作。如果编程语言支持 [函数重载](https://en.wikipedia.org/wiki/Function_overloading)，访问操作可以有相同的名称（目前 Dart 不支持），但它们的参数类型必须不同。通常，操作的名称和签名是不同的，用于识别将访问请求发送给访问者的类（_concrete element_）；
+- *Concrete visitors*——实现 _Visitor_ 声明的每个操作；
+- *Element*——声明一个接受 _Visitor_ 作为参数的 _accept_ 方法；
+- *Concrete elements*——实现接受方法。实现应依赖于将请求重定向到对应于当前元素类的特定访问者方法；
+- *Client*——通常包含一个集合或复杂的对象结构，初始化 _concrete visitor_ 对象，然后遍历对象结构，用访问者访问每个元素。
 
-The general structure of the Visitor design pattern looks like this:
+### 适用性
 
-![Structure of the Visitor design pattern](./img/visitor.png)
+访问者设计模式的主要目的是将算法与其操作的对象分离，从而清理业务逻辑。这样，你的应用类可以专注于它们的主要工作，而辅助行为被提取到一组访问者类中。此外，访问者允许通过在一个类中定义它们来保持相关操作的一致性。
 
-- *Visitor* - declares a visit operation for each _concrete element_ class in the object structure. If the programming language supports [function overloading](https://en.wikipedia.org/wiki/Function_overloading), visit operations could have the same name (Dart does not support that at the moment), but the type of their parameters must be different. Usually, the operation's name and signature are different and identify the class (_concrete element_) that sends the visit request to the visitor;
-- *Concrete visitors* - implements each operation declared by _Visitor_;
-- *Element* - declares an _accept_ method that takes _Visitor_ as an argument;
-- *Concrete elements* - implements the acceptance method. The implementation should rely on redirecting the request to the proper visitor's method corresponding to the current element class;
-- *Client* - usually contains a collection or a complex object structure, initialises the _concrete visitor_ object and then traverses the object structure by visiting each element with the visitor.
+此外，当你想对复杂对象结构的所有元素执行操作，并且你不想更改具体类的接口时，应该使用访问者设计模式。不同的访问方法实现在接受访问者的不同类上执行，因此可以更改特定实现细节或添加新的特定访问者实现，而不干扰对象结构及其组件的现有代码库。
 
-### Applicability
+最后，有一件重要的事情需要注意：访问者设计模式仅在对象结构很少更改时才有意义（一如既往，对此持保留态度）。如果你只想更改或添加新的访问者实现——那很好。然而，更改对象结构类需要重新定义所有访问者的接口，这可能变得很麻烦，并且违反了开放封闭原则（[**SOLID**](https://en.wikipedia.org/wiki/SOLID)原则中的 **O** 字母）。这个问题的一个简单解决方案是直接在这些类中定义操作，而不是将它们提取到访问者中。
 
-The primary purpose of the Visitor design pattern is to separate algorithms from the objects on which they operate, hence cleaning up the business logic. This way, the classes of your app could focus on their main job while auxiliary behaviours are extracted into a set of visitor classes. Also, visitors allows keeping the related operations together by defining them in one class.
+## 实现
 
-Furthermore, the Visitor design pattern should be used when you want to execute an operation on all elements of a complex object structure and you do not want to change the interface(s) of concrete classes. Different visiting method implementations are executed on different classes which accept the visitors, hence the specific implementation details could be changed or new specific visitor implementations could be added without interfering with the existing code base of the object structure and its components.
+![让我们深入研究](./img/lets_dive_in.gif)
 
-Finally, there is one important thing to note: the Visitor design pattern only makes sense for object structures that rarely change (as always, take it with a grain of salt). If you just want to change or add new implementations for visitors - that's fine. However, changing the object structure classes requires redefining the interface for all visitors which could become cumbersome and violates the Open-Closed (the letter **O** in [**SOLID**](https://en.wikipedia.org/wiki/SOLID) principles). A simple solution to this problem is just defining the operations in those classes without extracting them to a visitor.
+在实现部分，我们将在已经实现的复杂对象结构上使用访问者设计模式，该结构是在 [Composite](../2019-11-07-flutter-design-patterns-4-composite/index.md) 设计模式中介绍的。我认为，这将是一个很好的例子，展示不同设计模式如何相互补充，以及如何重用/扩展已有的代码库。
 
-## Implementation
+我们的复杂对象结构是一个文件系统，由目录和各种类型的文件（音频、视频、文本等）组成。假设这种结构已经使用 Composite 设计模式实现。现在，我们想添加一种可能性，以两种不同的格式导出这种文件结构：人类可读（只提供单个格式化列表中的每个文件）和 XML。
 
-![Let's dive in](./img/lets_dive_in.gif)
+实现此功能的第一种可能方法是为每个特定文件类型定义导出方法。在这种情况下，这是错误的，原因如下：
 
-For the implementation part, we will use the Visitor design pattern on the already implemented complex object structure which was introduced with the [Composite](../2019-11-07-flutter-design-patterns-4-composite/index.md) design pattern. In my opinion, it would be a great example of how different design patterns could complement each other and how to reuse/extend the already existing codebase.
+- 对于每个特定的导出选项，我们需要在每个特定文件类中实现一个单独的导出方法。此外，将来添加新的导出选项时，我们将需要再次向每个文件类添加一些额外的代码。
+- 这违反了[单一责任原则](https://en.wikipedia.org/wiki/Single-responsibility_principle)。导出功能只是在文件结构之上应用的辅助操作，因此每个特定文件都不应该关心并将实现细节存储在类本身内部。
 
-Our complex object structure is a file system that consists of directories and files of various types (audio, video, text, etc.). Let's say that this kind of structure is already implemented using the Composite design pattern. Now, we want to add a possibility to export such file structure in two different formats: human-readable (just provide each file in a single, formatted list) and XML.
-
-The first possible approach to implement this feature is to define the export method for each specific file type. In this case, this is wrong for several reasons:
-
-- For each specific export option, we would need to implement a separate export method in each specific file class. Also, by adding a new export option in the future, we would need to add some extra code to each file class once again.
-- It's a violation of the [Single-responsibility](https://en.wikipedia.org/wiki/Single-responsibility_principle) principle. The export functionality is just an auxiliary operation applied on top of the file structure, hence each specific file should not care and store the implementation details inside the class itself.
-
-As you could guess, these problems could be easily resolved by applying the Visitor design pattern and defining each specific export option in a separate visitor class which takes care of all the specific implementation details for all the file types in a single place. Let's check the class diagram first and then implement the pattern!
+正如你所猜测的，这些问题可以通过应用访问者设计模式轻松解决，并在一个单独的访问者类中定义每个特定的导出选项，该类负责处理单个位置的所有文件类型的所有特定实现细节。让我们先检查类图，然后实现该模式！
 
 ### Class diagram
 
-The class diagram below shows the implementation of the Visitor design pattern:
+下面的类图展示了访问者设计模式的实现：
 
-![Class Diagram - Implementation of the Visitor design pattern](./img/visitor_implementation.png)
+![类图 - 访问者设计模式的实现](./img/visitor_implementation.png)
 
-`IFile` defines a common interface for both `File` and `Directory` classes:
+`IFile` 定义了 `File` 和 `Directory` 类的通用接口：
 
-- `getSize()` - returns the size of the file;
-- `render()` - renders the component's UI;
-- `accept()` - delegates request to a visitor.
+- `getSize()` - 返回文件的大小；
+- `render()` - 渲染组件的 UI；
+- `accept()` - 将请求委托给访问者。
 
-`File` class implements the `getSize()` and `render()` methods, additionally contains `title`, `fileExtension`, `size` and `icon` properties.
+`File` 类实现了 `getSize()` 和 `render()` 方法，另外包含 `title`、`fileExtension`、`size` 和 `icon` 属性。
 
-`AudioFile`, `ImageFile`, `TextFile` and `VideoFile` are concrete file classes implementing the `accept()` method from the `IFile` interface and containing some additional information about the specific file.
+`AudioFile`、`ImageFile`、`TextFile` 和 `VideoFile` 是具体的文件类，实现了 `IFile` 接口的 `accept()` 方法，并包含了有关特定文件的一些额外信息。
 
-`Directory` implements the same required methods as `File`, but it also contains `title`, `level`, `isInitiallyExpanded` properties and `files` list, containing the `IFile` objects. It also defines the `addFile()` method, which allows adding `IFile` objects to the directory (`files` list). Similarly, as in specific file classes, `accept()` method is implemented here as well.
+`Directory` 实现了与 `File` 相同的所需方法，但它还包含 `title`、`level`、`isInitiallyExpanded` 属性和包含 `IFile` 对象的 `files` 列表。它还定义了 `addFile()` 方法，允许将 `IFile` 对象添加到目录（`files` 列表）中。与特定文件类似，这里也实现了 `accept()` 方法。
 
-`IVisitor` defines a common interface for the specific visitor classes:
+`IVisitor` 定义了特定访问者类的通用接口：
 
-- `getTitle()` - returns the title of the visitor that is used in the UI;
-- `visitDirectory()` - defines a visiting method for the `Directory` class;
-- `visitAudioFile()` - defines a visiting method for the `AudioFile` class;
-- `visitImageFile()` - defines a visiting method for the `ImageFile` class;
-- `visitTextFile()` - defines a visiting method for the `TextFile` class;
-- `visitVideoFile()` - defines a visiting method for the `VideoFile` class.
+- `getTitle()` - 返回访问者在 UI 中使用的标题；
+- `visitDirectory()` - 为 `Directory` 类定义一个访问方法；
+- `visitAudioFile()` - 为 `AudioFile` 类定义一个访问方法；
+- `visitImageFile()` - 为 `ImageFile` 类定义一个访问方法；
+- `visitTextFile()` - 为 `TextFile` 类定义一个访问方法；
+- `visitVideoFile()` - 为 `VideoFile` 类定义一个访问方法。
 
-`HumanReadableVisitor` and `XmlVisitor` are concrete visitor classes that implement visit methods for each specific file type.
+`HumanReadableVisitor` 和 `XmlVisitor` 是具体的访问者类，实现了对每种特定文件类型的访问方法。
 
-`VisitorExample` contains a list of visitors implementing the `IVisitor` interface and the composite file structure. The selected visitor is used to format the visible file structure as text and provide it to the UI.
+`VisitorExample` 包含一个实现 `IVisitor` 接口的访问者列表和复合文件结构。选定的访问者用于将可见的文件结构格式化为文本，并提供给 UI。
 
 ### IFile
 
-An interface that defines methods to be implemented by specific files and directories. The interface also defines an `accept()` method which is used for the Visitor design pattern implementation.
+一个定义了特定文件和目录应实现的方法的接口。该接口还定义了一个 `accept()` 方法，用于实现访问者设计模式。
 
 ```dart title="ifile.dart"
 abstract interface class IFile {
@@ -118,7 +100,7 @@ abstract interface class IFile {
 
 ### File
 
-A concrete implementation of the `IFile` interface. In the `File` class, the `getSize()` method simply returns the file size, and `render()` - returns the file's UI widget which is used in the example screen.
+`IFile` 接口的一个具体实现。在 `File` 类中，`getSize()` 方法简单地返回文件大小，`render()` 返回用于示例屏幕的文件的 UI 小部件。
 
 ```dart title="file.dart"
 abstract class File extends StatelessWidget implements IFile {
@@ -166,9 +148,9 @@ abstract class File extends StatelessWidget implements IFile {
 
 ### Concrete file classes
 
-All of the specific file type classes implement the `accept()` method that delegates request to the specific visitor's method.
+所有特定文件类型类都实现了 `accept()` 方法，该方法将请求委托给特定访问者的方法。
 
-`AudioFile` - a specific file class representing the audio file type that contains an additional `albumTitle` property.
+`AudioFile` - 代表音频文件类型的特定文件类，包含一个额外的 `albumTitle` 属性。
 
 ```dart title="audio_file.dart"
 class AudioFile extends File {
@@ -186,7 +168,7 @@ class AudioFile extends File {
 }
 ```
 
-`ImageFile` - a specific file class representing the image file type that contains an additional `resolution` property.
+`ImageFile` - 代表图像文件类型的特定文件类，包含一个额外的 `resolution` 属性。
 
 ```dart title="image_file.dart"
 class ImageFile extends File {
@@ -204,7 +186,7 @@ class ImageFile extends File {
 }
 ```
 
-`TextFile` - a specific file class representing the text file type that contains an additional `content` property.
+`TextFile` - 代表文本文件类型的特定文件类，包含一个额外的 `content` 属性。
 
 ```dart title="text_file.dart"
 class TextFile extends File {
@@ -222,7 +204,7 @@ class TextFile extends File {
 }
 ```
 
-`VideoFile` - a specific file class representing the video file type that contains an additional `directedBy` property.
+`VideoFile` - 代表视频文件类型的特定文件类，包含一个额外的 `directedBy` 属性。
 
 ```dart title="video_file.dart"
 class VideoFile extends File {
@@ -242,7 +224,7 @@ class VideoFile extends File {
 
 ### Directory
 
-A concrete implementation of the `IFile` interface. Similarly, as in the `File` class, `render()` returns the directory's UI widget which is used in the example screen. However, in this class `getSize()` method calculates the directory size by calling the `getSize()` method for each item in the `files` list and adding up the results. Also, the class implements the `accept()` method that delegates request to the specific visitor's method for the directory.
+`IFile` 接口的一个具体实现。类似于 `File` 类，`render()` 返回用于示例屏幕的目录的 UI 小部件。然而，在这个类中，`getSize()` 方法通过对 `files` 列表中的每个项调用 `getSize()` 方法并将结果相加来计算目录大小。此外，该类实现了 `accept()` 方法，该方法将请求委托给目录的特定访问者方法。
 
 ```dart title="directory.dart"
 class Directory extends StatelessWidget implements IFile {
@@ -300,7 +282,7 @@ class Directory extends StatelessWidget implements IFile {
 
 ### Formatting extensions
 
-Defines an extension method `indentAndAddNewLine` that adds `nTab` tabs at the beginning and a new line symbol at the end of a String.
+定义了一个扩展方法 `indentAndAddNewLine`，在字符串的开头添加 `nTab` 个制表符，在末尾添加一个新行符。
 
 ```dart title="formatting_extension.dart"
 extension FormattingExtension on String {
@@ -310,7 +292,7 @@ extension FormattingExtension on String {
 
 ### IVisitor
 
-An interface that defines methods to be implemented by all specific visitors.
+定义了所有特定访问者应实现的方法的接口。
 
 ```dart title="ivisitor.dart"
 abstract interface class IVisitor {
@@ -325,7 +307,7 @@ abstract interface class IVisitor {
 
 ### Concrete visitors
 
-`HumanReadableVisitor` - implements the specific visitor that provides file information of each file type in a human-readable format.
+`HumanReadableVisitor` - 实现了提供每种文件类型的文件信息的特定访问者，以人类可读格式。
 
 ```dart title="human_readable_visitor.dart"
 class HumanReadableVisitor implements IVisitor {
@@ -411,7 +393,7 @@ class HumanReadableVisitor implements IVisitor {
 }
 ```
 
-`XmlVisitor` - implements the specific visitor that provides file information of each file type in XML format.
+`XmlVisitor` - 实现了提供每种文件类型的文件信息的特定访问者，以 XML 格式。
 
 ```dart title="xml_visitor.dart"
 class XmlVisitor implements IVisitor {
@@ -508,11 +490,12 @@ class XmlVisitor implements IVisitor {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个 markdown 文件，并提供为模式的描述：
 
 ![Example markdown](./img/example_markdown.gif)
 
-The `VisitorExample` widget contains the `buildMediaDirectory()` method which builds the file structure for the example. Also, it contains a list of different visitors and provides it to the `FilesVisitorSelection` widget where the index of a specific visitor is selected by triggering the `setSelectedVisitorIndex()` method.
+`VisitorExample` 小部件包含 `buildMediaDirectory()` 方法，该方法构建示例的文件结构。
+它还包含不同访问者的列表，并将其提供给 `FilesVisitorSelection` 小部件，其中通过触发 `setSelectedVisitorIndex()` 方法选择特定访问者的索引。
 
 ```dart title="visitor_example.dart"
 class VisitorExample extends StatefulWidget {
@@ -695,14 +678,15 @@ class _VisitorExampleState extends State<VisitorExample> {
 }
 ```
 
-When exporting files' information and providing it in the modal via the `showFilesDialog()` method, the example widget does not care about the concrete selected visitor as long as it implements the `IVisitor` interface. The selected visitor is just applied to the whole file structure by passing it as a parameter to the `accept()` method, hence retrieving the formatted files' structure as text and providing it to the opened `FilesDialog` modal.
+当通过 `showFilesDialog()` 方法导出文件信息并在模态框中提供时，示例小部件不关心具体选择的访问者，
+只要它实现了 `IVisitor` 接口。选定的访问者只是通过将其作为参数传递给 `accept()` 方法来应用于整个文件结构，
+因此检索格式化的文件结构文本并将其提供给打开的 `FilesDialog` 模态框。
 
-![Visitor example](./img/example.gif)
 
-As you can see in the example, by selecting the specific visitor (export as text or XML option), the file structure is exported in the corresponding text format and provided to the user.
+![访问者示例](./img/example.gif)
 
-All of the code changes for the Visitor design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/22).
+如你在示例中看到的，通过选择特定的访问者（导出为文本或XML选项），文件结构以相应的文本格式导出并提供给用户。
 
-:::tip
-To see the pattern in action, check the [interactive Visitor example](https://flutterdesignpatterns.com/pattern/visitor).
-:::
+访问者设计模式及其示例实现的所有代码更改都可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/22)找到。
+
+要看到模式的实际操作，请查看[交互式访问者示例](https://flutterdesignpatterns.com/pattern/visitor)。

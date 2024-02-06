@@ -1,115 +1,99 @@
----
-slug: flutter-design-patterns-23-observer
-title: "Flutter Design Patterns: Observer"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
+_观察者设计模式及其在 Dart 和 Flutter 中的实现概述_
 
-_An overview of the Observer design pattern and its implementation in Dart and Flutter_
-
-![Header image](./img/header.png)
-
-In the last [article](../2021-03-17-flutter-design-patterns-22-mediator/index.md), I analysed a behavioural design pattern that reduces dependencies between a set of interacting objects by decoupling the interaction logic from the objects and moving it to a dedicated controller - Mediator. In this article, I would like to analyse and implement another behavioural design pattern that lets you define a publish-subscribe mechanism to notify multiple objects about any events that happen to the object they're subscribed to - it is Observer.
-
-<!--truncate-->
+![头图](./img/header.png)
 
 :::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
+要查看所有设计模式的实际操作，请查看 [Flutter 设计模式应用程序](https://flutterdesignpatterns.com/)。
 :::
 
-## What is the Observer design pattern?
+## 什么是观察者设计模式？
 
-![Neale Donald Walsch quote about the observer effect](./img/observer_effect.jpeg)
+![Neale Donald Walsch 关于观察者效应的引用](./img/observer_effect.jpeg)
 
-**Observer**, also known as **Dependents** or **Publish-Subscribe**, belongs to the category of behavioural design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+**观察者**，也被称为 **Dependents** 或 **Publish-Subscribe**，属于行为设计模式的范畴。这种设计模式的意图在 [GoF 书籍](https://en.wikipedia.org/wiki/Design_Patterns)中被描述为：
 
-> _Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically._
+> _在对象之间定义一对多的依赖关系，以便当一个对象改变状态时，所有依赖于它的对象都会自动接到通知并被更新。_
 
-**Spoiler alert:** if you have ever heard about reactive programming or even used the related frameworks/libraries/tools such as [ReactiveX](https://reactivex.io/), [RxDart](https://pub.dev/packages/rxdart) or just basic streams in Dart, this design pattern won't be a game-changer for you. But it is still worth knowing how reactive programming ideas are implemented in the OOP context from the ground up, though.
+**剧透警告：**如果你曾经听说过响应式编程，甚至使用过相关的框架/库/工具，如 [ReactiveX](https://reactivex.io/)、[RxDart](https://pub.dev/packages/rxdart) 或仅仅是 Dart 中的基础流，这种设计模式对你来说不会是改变游戏规则的。但是，从底层了解响应式编程思想在 OOP 上下文中是如何实现的，仍然是值得的。
 
-The motivation for this design pattern comes from the problem of having a collection of tightly coupled objects in the system where changes for one object should trigger changes in the others (one-to-many relationship). An inflexible way to implement this is to define an object that implements updating the state of other dependent ones. Such an object becomes hard to implement, maintain, test and reuse because of the dependency chaos.
+这种设计模式的动机来源于系统中有一系列紧密耦合对象的问题，其中一个对象的变化应该触发其他对象的变化（一对多关系）。实现这一点的一种不灵活的方式是定义一个实现其他依赖对象状态更新的对象。由于依赖混乱，这样的对象变得难以实现、维护、测试和重用。
 
-A better way to approach this is to implement a publish-subscribe mechanism that sends the update events to dependent objects so they could implement and maintain the update logic on their own. To achieve this, the Observer design pattern introduces two roles: **Subject** and **Observer**.
+更好的方法是实现一个发布-订阅机制，将更新事件发送给依赖对象，以便它们可以自行实现和维护更新逻辑。为了实现这一点，观察者设计模式引入了两个角色：**主题（Subject）**和**观察者（Observer）**。
 
-The subject is the publisher of notifications which also defines a way for the observers to subscribe/unsubscribe from those notifications. A subject may have any number of dependent observers - the same idea of maintaining a one-to-many relationship just in a more flexible way. When a subject changes state, all registered observers are notified and updated automatically. This way the subject could trigger an update on dependent objects without even knowing who its observers are - this enables loose coupling between subject and observers.
+主题是通知的发布者，也定义了观察者订阅/取消订阅这些通知的方式。一个主题可能有任意数量的依赖观察者 - 以一种更灵活的方式维护一对多关系的相同思想。当主题改变状态时，所有注册的观察者都会被通知并自动更新。这样，主题可以在不知道其观察者是谁的情况下触发依赖对象的更新 - 这使得主题和观察者之间的耦合松散。
 
-Let's move to the analysis and implementation parts to understand and learn the details about this pattern and how to implement it!
+让我们转到分析和实现部分，了解和学习这种模式的细节以及如何实现它！
 
-## Analysis
+## 分析
 
-The general structure of the Observer design pattern looks like this:
+观察者设计模式的一般结构如下所示：
 
-![Structure of the Observer design pattern](./img/observer.png)
+![观察者设计模式的结构](./img/observer.png)
 
-- *Publisher (Subject)* - provides an interface for attaching and detaching _Subscriber (Observer)_ objects, contains a list of observers;
-- *(Optional) Concrete Publishers* - stores state of interest for _Concrete Subscribers_ and sends a notification to its observers when the state changes. This class is optional when only a single type of _Publisher_ is needed. In such case, the state and notification logic is handled by the _Publisher_;
-- *Subscriber (Observer)* - declares the notification interface for objects that should be notified of changes in a _Subject_;
-- *Concrete Subscribers* - implements the _Subscriber (Observer)_ interface to keep its state consistent with the subject's state;
-- *Client* - creates _Subject_ and _Observer_ objects, attaches observers to subject updates.
+- *发布者（主题）* - 提供一个接口，用于附加和分离 _订阅者（观察者）_ 对象，包含观察者列表；
+- *(可选) 具体发布者* - 存储 _具体订阅者_ 感兴趣的状态，并在状态改变时向其观察者发送通知。当只需要一种类型的 _发布者_ 时，这个类是可选的。在这种情况下，状态和通知逻辑由 _发布者_ 处理；
+- *订阅者（观察者）* - 声明对象应该被通知主题中的变化的通知接口；
+- *具体订阅者* - 实现 _订阅者（观察者）_ 接口，以保持其状态与主题的状态一致；
+- *客户端* - 创建 _主题_ 和 _观察者_ 对象，将观察者附加到主题更新。
 
-### Observer vs Mediator
+### 观察者 vs 中介者
 
-If you have read the previous [article](../2021-03-17-flutter-design-patterns-22-mediator/index.md) in the series or are familiar with the Mediator design pattern you could feel some kind of *déjà vu* - isn't the Observer design pattern the same thing? Let me explain.
+如果你已经阅读了系列的上一篇或者熟悉中介者设计模式，你可能会有一种 *似曾相识* 的感觉 - 观察者设计模式不是同一回事吗？让我来解释。
 
-The primary goal of the Mediator design pattern is to replace many-to-many relationships between objects with one-to-many relationships by using the dedicated mediator object that handles the communication part. Observer allows establishing a dynamic one-way connection between objects, where some objects act as subordinates of others.
+中介者设计模式的主要目标是通过使用专门的中介对象处理通信部分，将对象之间的多对多关系替换为一对多关系。观察者允许在对象之间建立动态的单向连接，其中一些对象充当其他对象的下属。
 
-If you have only one mediator that allows subscriptions to its state, this implementation is based on the Observer design pattern but the Mediator design pattern could be also used only as a part of the publish-subscribe communication. Now, if we have multiple publishers and multiple subscribers (which could be publishers as well), there won't be any mediator object only a distributed set of observers.
+如果你只有一个允许订阅其状态的中介者，这种实现基于观察者设计模式，但中介者设计模式也可以仅作为发布-订阅通信的一部分使用。现在，如果我们有多个发布者和多个订阅者（它们也可以是发布者），那么就不会有任何中介对象，只有一个分布式的观察者集合。
 
-### Applicability
+### 适用性
 
-The Observer design pattern should be used when a change to one object requires changing others, but you don't know how many objects need to be changed and how. The pattern allows subscribing to such object events and changing the dependent object's state accordingly.
+当一个对象的变化需要改变其他对象，但你不知道需要改变多少个对象以及如何改变时，应该使用观察者设计模式。该模式允许订阅此类对象事件并相应地改变依赖对象的状态。
 
-Also, this pattern should be used when some objects must observe others, but only for a limited time. The subscription mechanism allows dependent objects to listen to the update events on demand and change this behaviour at run-time.
+此外，当一些对象必须观察其他对象，但只在有限的时间内时，也应该使用这种模式。订阅机制允许依赖对象按需监听更新事件，并在运行时改变这种行为。
 
-## Implementation
+## 实现
 
-![Bring it on](./img/bring_it_on.gif)
+![开始编码](./img/bring_it_on.gif)
 
-For the implementation part, we will use the Observer design pattern to implement a stock market prototype.
+在实现部分，我们将使用观察者设计模式来实现一个股票市场原型。
 
-In the stock market, there are hundreds and thousands of different stocks. Of course, not all of them are relevant to you, so you would like to subscribe and track only the specific ones.
+在股票市场中，有成百上千种不同的股票。当然，并非所有的股票都与你相关，因此你可能只想订阅和跟踪特定的一些股票。
 
-The prototype allows subscribing to 3 different stocks - GameStop (GME), Alphabet Inc. a.k.a. Google (GOOGL) and Tesla Motors (TSLA). Also, there are two different types of subscriptions:
+该原型允许订阅 3 种不同的股票 - GameStop (GME)、Alphabet Inc.，也就是 Google (GOOGL) 和 Tesla Motors (TSLA)。此外，有两种不同类型的订阅：
 
-- Default stock subscription - notifies about every subscribed stock change.
-- Growing stock subscription - notifies only about the growing stock changes.
+- 默认股票订阅 - 通知每次订阅的股票变化。
+- 增长股票订阅 - 仅通知增长股票的变化。
 
-Such stocks' trackers could be easily implemented by using the Observer design pattern. Of course, the prototype only supports 3 different stock types, but new stock tickers or even new subscription types could be easily added later on without affecting the existing code. Let's check the class diagram first and then implement the pattern!
+使用观察者设计模式可以很容易地实现此类股票跟踪器。当然，原型仅支持 3 种不同的股票类型，但以后可以很容易地添加新的股票代码或甚至新的订阅类型，而不影响现有代码。让我们先检查类图，然后实现该模式！
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Observer design pattern:
+下面的类图展示了观察者设计模式的实现：
 
-![Class Diagram - Implementation of the Observer design pattern](./img/observer_implementation.png)
+![类图 - 观察者设计模式的实现](./img/observer_implementation.png)
 
-`StockTicker` is a base class that is used by all the specific stock ticker classes. The class contains `title`, `stockTimer` and `stock` properties, and `subscribers` list, provides several methods:
+`StockTicker` 是所有特定股票代码类使用的基类。该类包含 `title`、`stockTimer` 和 `stock` 属性以及 `subscribers` 列表，并提供几种方法：
 
-- `subscribe()` - subscribes to the stock ticker;
-- `unsubscribe()` - unsubscribes from the stock ticker;
-- `notifySubscribers()` - notifies subscribers about the stock change;
-- `setStock()` - sets stock value;
-- `stopTicker()` - stops ticker emitting stock events.
+- `subscribe()` - 订阅股票代码；
+- `unsubscribe()` - 从股票代码中取消订阅；
+- `notifySubscribers()` - 通知订阅者关于股票变化；
+- `setStock()` - 设置股票值；
+- `stopTicker()` - 停止股票事件发出的定时器。
 
-`GameStopStockTicker`, `GoogleStockTicker` and `TeslaStockTicker` are concrete stock ticker classes that extend the abstract class `StockTicker`.
+`GameStopStockTicker`、`GoogleStockTicker` 和 `TeslaStockTicker` 是扩展抽象类 `StockTicker` 的具体股票代码类。
 
-The `Stock` class contains `symbol`, `changeDirection`, `price` and `changeAmount` properties to store info about the stock.
+`Stock` 类包含 `symbol`、`changeDirection`、`price` 和 `changeAmount` 属性，用于存储有关股票的信息。
 
-`StockTickerSymbol` is an enumerator class defining supported stock ticker symbols - GME, GOOGL and TSLA.
+`StockTickerSymbol` 是一个枚举类，定义了支持的股票代码符号 - GME、GOOGL 和 TSLA。
 
-`StockChangeDirection` is an enumerator class defining stock change directions - growing and falling.
+`StockChangeDirection` 是一个枚举类，定义了股票变化方向 - 增长和下跌。
 
-`StockSubscriber` is an abstract class that is used as a base class for all the specific stock subscriber classes. The class contains `title`, `id` and `stockStreamController` properties, `stockStream` getter and defines the abstract `update()` method to update subscriber state.
+`StockSubscriber` 是用作所有特定股票订阅者类的基类的抽象类。该类包含 `title`、`id` 和 `stockStreamController` 属性、`stockStream` 获取器，并定义了抽象的 `update()` 方法来更新订阅者状态。
 
-`DefaultStockSubscriber` and `GrowingStockSubscriber` are concrete stock subscriber classes that extend the abstract class `StockSubscriber`.
+`DefaultStockSubscriber` 和 `GrowingStockSubscriber` 是扩展抽象类 `StockSubscriber` 的具体股票订阅者类。
 
 ### StockTicker
 
-An base class implementing methods for all the specific stock ticker classes. Property `title` is used in the UI for stock ticker selection, `stockTimer` periodically emits a new stock value that is stored in the stock property by using the `setStock()` method. The class also stores a list of stock subscribers that can subscribe to the stock ticker and unsubscribe from it by using the `subscribe()` and `unsubscribe()` respectively. Stock ticker subscribers are notified about the value change by calling the `notifySubscribers()` method. The stock timer could be stopped by calling the `stopTicker()` method.
+为所有特定股票代码类实现方法的基类。`title` 属性在 UI 中用于股票代码选择，`stockTimer` 定期发出新的股票值，该值通过使用 `setStock()` 方法存储在股票属性中。该类还存储了可以订阅股票代码并通过使用 `subscribe()` 和 `unsubscribe()` 分别从中取消订阅的股票订阅者列表。通过调用 `notifySubscribers()` 方法通知股票代码订阅者值变化。可以通过调用 `stopTicker()` 方法停止股票定时器。
 
 ```dart title="stock_ticker.dart"
 base class StockTicker {
@@ -153,9 +137,9 @@ base class StockTicker {
 
 ### Concrete stock ticker classes
 
-All of the specific stock ticker classes extend the abstract `StockTicker` class.
+所有特定股票代码类扩展了抽象的 `StockTicker` 类。
 
-`GameStopStockTicker` - a stock ticker of the GameStop stocks that emits a new stock event every 2 seconds.
+`GameStopStockTicker` - GameStop 股票的股票代码，每 2 秒发出一个新的股票事件。
 
 ```dart title="gamestop_stock_ticker.dart"
 final class GameStopStockTicker extends StockTicker {
@@ -172,7 +156,7 @@ final class GameStopStockTicker extends StockTicker {
 }
 ```
 
-`GoogleStockTicker` - a stock ticker of the Google stocks that emits a new stock event every 5 seconds.
+`GoogleStockTicker` - Google 股票的股票代码，每 5 秒发出一个新的股票事件。
 
 ```dart title="google_stock_ticker.dart"
 final class GoogleStockTicker extends StockTicker {
@@ -189,7 +173,7 @@ final class GoogleStockTicker extends StockTicker {
 }
 ```
 
-`TeslaStockTicker` - a stock ticker of the Tesla stocks that emits a new stock event every 3 seconds.
+`TeslaStockTicker` - Tesla 股票的股票代码，每 3 秒发出一个新的股票事件。
 
 ```dart title="tesla_stock_ticker.dart"
 final class TeslaStockTicker extends StockTicker {
@@ -208,7 +192,7 @@ final class TeslaStockTicker extends StockTicker {
 
 ### Stock
 
-A simple class to store information about the stock. The `Stock` class contains data about the stocker ticker symbol, stock change direction, current price and the change amount.
+一个简单的类用于存储股票信息。`Stock` 类包含股票代码符号、股票变化方向、当前价格和变化量的数据。
 
 ```dart title="stock.dart"
 class Stock {
@@ -228,7 +212,7 @@ class Stock {
 
 ### StockTickerSymbol
 
-A special kind of class - *enumeration* - to define supported stock ticker symbols.
+一个特殊的类 - *枚举* - 用来定义支持的股票代码符号。
 
 ```dart title="stock_ticker_symbol.dart"
 enum StockTickerSymbol {
@@ -240,7 +224,7 @@ enum StockTickerSymbol {
 
 ### StockChangeDirection
 
-A special kind of class - *enumeration* - to define stock change directions.
+一个特殊的类 - *枚举* - 用来定义股票变化方向。
 
 ```dart title="stock_change_direction.dart"
 enum StockChangeDirection {
@@ -251,7 +235,8 @@ enum StockChangeDirection {
 
 ### StockSubscriber
 
-An abstract class containing base properties for all the specific stock ticker classes. Property `title` is used in the UI for stock subscriber selection, `id` uniquely identifies the subscriber. Updated stock values are added to the `stockStreamController` and emitted via the `stockStream`. Abstract method `update()` is defined and must be implemented by all the concrete stock subscriber classes.
+一个抽象类，包含所有特定股票代码类的基本属性。属性 `title` 用于 UI 中的股票订阅者选择，`id` 唯一标识订阅者。
+更新的股票值被添加到 `stockStreamController` 并通过 `stockStream` 发出。抽象方法 `update()` 被定义，所有具体的股票订阅者类必须实现。
 
 ```dart title="stock_subscriber.dart"
 abstract class StockSubscriber {
@@ -271,7 +256,7 @@ abstract class StockSubscriber {
 
 ### Concrete stock subscriber classes
 
-`DefaultStockSubscriber` - a default stock subscriber that emits every stock change on update.
+`DefaultStockSubscriber` - 一个默认的股票订阅者，在更新时发出每一个股票变化。
 
 ```dart title="default_stock_subscriber.dart"
 class DefaultStockSubscriber extends StockSubscriber {
@@ -286,7 +271,7 @@ class DefaultStockSubscriber extends StockSubscriber {
 }
 ```
 
-`GrowingStockSubscriber` - a growing stock subscriber that emits only growing stock changes on update.
+`GrowingStockSubscriber` - 一个增长股票订阅者，仅在更新时发出增长的股票变化。
 
 ```dart title="growing_stock_subscriber.dart"
 class GrowingStockSubscriber extends StockSubscriber {
@@ -305,11 +290,11 @@ class GrowingStockSubscriber extends StockSubscriber {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，一个 markdown 文件被准备并作为模式的描述提供：
 
-![Example markdown](./img/example_markdown.gif)
+![示例 markdown](./img/example_markdown.gif)
 
-`ObserverExample` contains a list of `StockSubscriber` as well as a list of `StockTickerModel` objects (specific `StockTicker` class with a flag of whether the user is subscribed to the stock ticker or not).
+`ObserverExample` 包含一个 `StockSubscriber` 列表以及一个 `StockTickerModel` 对象列表（带有用户是否订阅股票代码标志的特定 `StockTicker` 类）。
 
 ```dart title="observer_example.dart"
 class ObserverExample extends StatefulWidget {
@@ -419,14 +404,12 @@ class _ObserverExampleState extends State<ObserverExample> {
 }
 ```
 
-A specific subscriber class could be easily changed by using the `StockSubscriberSelection` widget. Also, `StockTickerSelection` allows easily subscribing/unsubscribing from the specific stock ticker at run-time.
+通过使用 `StockSubscriberSelection` 小部件，可以轻松更改特定订阅者类。同样，`StockTickerSelection` 允许在运行时轻松订阅/取消订阅特定的股票代码。
 
 ![Observer example](./img/example.gif)
 
-As you can see in the example, the subscription type could be easily changed at run-time, you could start and stop tracking the specific stocks at any point as well.
+正如你在示例中看到的，订阅类型可以在运行时轻松更改，你可以随时开始和停止跟踪特定的股票。
 
-All of the code changes for the Observer design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/29).
+所有关于观察者设计模式及其示例实现的代码更改可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/29)找到。
 
-:::tip
-To see the pattern in action, check the [interactive Observer example](https://flutterdesignpatterns.com/pattern/observer).
-:::
+要查看模式的实际效果，请查看 [交互式观察者示例](https://flutterdesignpatterns.com/pattern/observer)。

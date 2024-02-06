@@ -1,98 +1,79 @@
----
-slug: flutter-design-patterns-19-flyweight
-title: "Flutter Design Patterns: Flyweight"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
-
-_An overview of the Flyweight design pattern and its implementation in Dart and Flutter_
+## Flyweight（享元）设计模式概述
 
 ![Header image](./img/header.png)
 
-In the last [article](../2020-04-15-flutter-design-patterns-18-builder/index.md), I analysed a creational design pattern that divides the construction of a complex object into several separate steps - Builder. In this article, I would like to analyse and implement a structural design pattern that helps using a huge number of objects in your code that could barely fit into available RAM - it is Flyweight.
+要查看所有设计模式的实际应用，请查看[Flutter Design Patterns应用程序](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
+## 什么是Flyweight设计模式
 
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
+**Flyweight** 属于**结构型**设计模式。在 [GoF 书](https://en.wikipedia.org/wiki/Design_Patterns)中，这个设计模式的目标被描述为：
 
-## What is the Flyweight design pattern?
+> _通过共享来有效地支持大量细粒度对象。_
 
-![Sharing is caring](./img/sharing_is_caring.png)
+以面向对象的文档编辑器为例。对于诸如表格、图片或图表这样的文档元素，通常会创建独立的对象。然而，对于文本元素（如单个字符），即便这种做法提高了灵活性，也并不可行。原因很简单 - 硬件的限制。一份文档通常包含成千上万的字符对象，这会消耗大量内存，并可能在文档编辑过程中导致意外崩溃。那么，这种面向对象的文档编辑器该如何实现呢？
 
-**Flyweight** belongs to the category of **structural** design patterns. The intention of this design pattern is described in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns):
+答案在于 flyweight 对象 - 可以在多个上下文中同时使用的共享对象。这是如何工作的呢？如果我们重复使用相同的对象，当在一个地方改变该对象时，是否意味着所有其他地方也会受到影响？关键在于区分**内在**和**外在**状态。内在状态是恒定的（与上下文无关）因此可以共享，例如字符集中字符的编码。外在状态是可变的（与上下文有关）因此不能共享，例如文档中字符的位置。正是因为这个原因，这种概念在面向对象的编辑器中行得通 - 对字符集中的每个字符（例如，字母表中的每个字母）创建一个单独的 flyweight 对象，该对象将字符代码存储为内在状态，而将字符在文档中的坐标位置作为外在状态传递给 flyweight 对象。因此，每个字符只需在内存中存储一个 flyweight 对象实例，并可跨文档结构中不同的上下文共享。共享是关怀，对吧？
 
-> _Use sharing to support large numbers of fine-grained objects efficiently._
+让我们深入分析和实施部分，以更好地了解这种模式及其实施方式！
 
-Let's take an object-oriented document editor as an example. For document elements like tables, images or figures, separate objects are created. However, for text elements (individual characters) this is not feasible even though it promotes flexibility: characters and any other embedded elements could be treated uniformly, and the application could be extended to support new character sets very easily. The reason is simple - limitations of the hardware. Usually, a document contains hundreds of thousands of character objects which would consume a lot of memory and it could lead to unexpected crashes, for instance, when the document is being edited and eventually there would be no memory left for new characters or any other type of embedded objects. How this kind of object-oriented document editor could be implemented, then?
 
-The "secret" relies on the flyweight objects - shared objects that can be used in multiple contexts simultaneously. But how this could even work? If we reuse the same object, doesn't that mean that when the object is changed in one place, all the other places are affected, too? Well, the key concept here is the distinction between **intrinsic** and **extrinsic** states. The intrinsic state is invariant (context-independent) and therefore can be shared e.g. the code of a character in the used character set. The extrinsic state is variant (context-dependent) and therefore can not be shared e.g. the position of a character in the document. And that's the reason why this concept works in object-oriented editors - a separate flyweight object is created for each character in the set (e.g. each letter in the alphabet) which stores the character code as the intrinsic state, while the coordinate positions in the document of that character are passed to the flyweight object as an extrinsic state. As a result, only one flyweight object instance per character could be stored in the memory and shared across different contexts in the document structure. Sharing is caring, right?
+## Flyweight 设计模式分析
 
-Let's move to the analysis and implementation parts to understand and learn the details about this pattern and how to implement it!
-
-## Analysis
-
-The general structure of the Flyweight design pattern looks like this:
+Flyweight 设计模式的总体结构如下所示：
 
 ![Structure of the Flyweight design pattern](./img/flyweight.png)
 
-- *Flyweight* - contains an intrinsic state while the extrinsic state is passed to the flyweight's methods. The object must be shareable (can be used in many different contexts);
-- *FlyweightFactory* - creates and manages flyweight objects. When a client calls the factory, it checks whether the specific flyweight object exists. If yes, it is simply returned to the client, otherwise, a new instance of the flyweight object is created and then returned;
-- *Context* - contains the extrinsic state, unique across all original objects;
-- *Client* - computes or stores the extrinsic state of flyweight(s) and maintains a reference to it/them.
+- *Flyweight* - 包含内在状态，而外在状态则传递给 flyweight 的方法。对象必须是可共享的（可在多种不同上下文中使用）；
+- *FlyweightFactory* - 创建和管理 flyweight 对象。当客户端调用工厂时，会检查特定的 flyweight 对象是否已存在。如果存在，则直接返回给客户端；否则，创建一个新的 flyweight 对象实例并返回；
+- *Context* - 包含外在状态，对所有原始对象而言是独一无二的；
+- *Client* - 计算或存储 flyweight(s) 的外在状态，并维持对它/它们的引用。
 
-### Applicability
+### 适用性
 
-The Flyweight design pattern should be used only when your program must support a huge number of objects which barely fit into available RAM. The pattern's effectiveness depends on how and where it's used. It would be the most useful when:
+仅当程序必须支持大量几乎填满可用 RAM 的对象时，应该使用 Flyweight 设计模式。该模式的有效性取决于其使用方式和位置。以下情况下使用最为有效：
 
-- An application uses a large number of objects;
-- The objects drain all available RAM on a target device;
-- The objects contain duplicate states which can be extracted and shared between multiple objects;
-- Many groups of objects could be replaced by a few shared objects once the extrinsic state is removed;
-- The application doesn't depend on object identity. Since flyweight objects are shared, conceptually distinct objects could be considered the same object.
+- 应用程序使用大量对象；
+- 对象消耗了目标设备上所有可用的 RAM；
+- 对象包含可以提取并在多个对象之间共享的重复状态；
+- 一旦移除外在状态，许多对象组可以被少数几个共享对象取代；
+- 应用程序不依赖于对象身份。由于 flyweight 对象是共享的，概念上不同的对象可能被视为同一个对象。
 
-## Implementation
+## 实现
 
 ![Let's make it real](./img/make_it_real.gif)
 
-Sadly, the implementation would not resolve any real-world problem this time, but we will implement a simple representation screen and later investigate how the usage of the Flyweight design pattern reduces memory consumption.
+虽然这次的实现不会解决任何现实世界的问题，但我们将实现一个简单的表示屏幕，并稍后研究使用 Flyweight 设计模式如何降低内存消耗。
 
-Let's say, we want to draw our custom background using two different geometric shapes - circles and squares. Also, in the background, we want to put a total of 1000 shapes at random positions. This will be implemented in two different ways:
+假设我们想使用两种不同的几何形状（圆形和正方形）绘制我们的自定义背景。此外，在背景中，我们想随机放置总共 1000 个形状。这将以两种不同的方式实现：
 
-- A new shape object would be created for each shape in the background;
-- A flyweight factory would be used which creates a single object per shape.
+- 背景中的每个形状都将创建一个新的形状对象；
+- 将使用一个 flyweight 工厂，为每个形状创建一个对象。
 
-Later, we will use a profiler tool for Dart Apps - [Observatory](https://github.com/dart-archive/observatory) - to investigate how much memory is used for each of these implementations. Let's check the class diagram first and then implement the pattern.
+稍后，我们将使用 Dart 应用程序的分析器工具 - [Observatory](https://github.com/dart-archive/observatory) - 来调查这些实现中每种实现使用了多少内存。让我们先看一下类图，然后再实现该模式。
 
 ### Class diagram
 
-The class diagram below shows the implementation of the Flyweight design pattern:
+下面的类图显示了 Flyweight 设计模式的实现：
 
-![Class Diagram - Implementation of the Flyweight design pattern](./img/flyweight_implementation.png)
+![Flyweight 设计模式的实现类图](./img/flyweight_implementation.png)
 
-The `ShapeType` is an enumerator class defining possible shape types - Circle and Square.
+`ShapeType` 是一个枚举类，定义了可能的形状类型 - Circle 和 Square。
 
-`IPositionedShape` defines a common interface for the specific shape classes:
+`IPositionedShape` 定义了特定形状类的通用接口：
 
-- `render()` - renders the shape - returns the positioned shape widget. Also, the **extrinsic** state (x and y coordinates) is passed to this method to render the shape in the exact position.
+- `render()` - 渲染形状 - 返回定位的形状小部件。此外，**外在**状态（x 和 y 坐标）被传递给此方法以在确切位置渲染形状。
 
-`Circle` and `Square` are concrete positioned shape implementations of the `IPositionedShape` interface. Both of these shapes have their own **intrinsic** state: a circle defines `color` and `diameter` properties while a square contains `color`, `width` properties and a getter `height` which returns the same value as `width`.
+`Circle` 和 `Square` 是 `IPositionedShape` 接口的具体定位形状实现。这两种形状都有自己的**内在**状态：圆形定义了 `color` 和 `diameter` 属性，而正方形包含 `color`、`width` 属性以及返回与 `width` 相同值的 `height` getter。
 
-The `ShapeFactory` is a simple factory class that creates and returns a specific shape object via the `createShape()` method by providing the `ShapeType`.
+`ShapeFactory` 是一个简单的工厂类，通过 `createShape()` 方法创建并返回特定的形状对象。
 
-The `ShapeFlyweightFactory` is a flyweight factory that contains a map of flyweight objects - `shapesMap`. When the concrete flyweight is requested via the `getShape()` method, the flyweight factory checks whether it exists on the map and returns it from there. Otherwise, a new instance of the shape is created using the `ShapeFactory` and persisted in the map object for further usage.
+`ShapeFlyweightFactory` 是一个 flyweight 工厂，包含一个 flyweight 对象映射 - `shapesMap`。当通过 `getShape()` 方法请求具体的 flyweight 时，flyweight 工厂会检查它是否存在于映射中并从那里返回它。否则，将使用 `ShapeFactory` 创建一个新的形状实例，并持久化在映射对象中以供进一步使用。
 
-The `FlyweightExample` initialises and contains the `ShapeFlyweightFactory` object. Also, it contains a list of positioned shapes - `shapesList` - which is built using the `ShapeFlyweightFactory` and flyweight-positioned shape objects.
+`FlyweightExample` 初始化并包含 `ShapeFlyweightFactory` 对象。此外，它包含一个定位形状列表 - `shapesList` - 使用 `ShapeFlyweightFactory` 和 flyweight 定位形状对象构建。
 
 ### ShapeType
 
-A special kind of class - *enumeration* - to define different shape types.
+这是一个特殊的类别 - *枚举* - 用于定义不同的形状类型。
 
 ```dart title="shape_type.dart"
 enum ShapeType {
@@ -103,7 +84,7 @@ enum ShapeType {
 
 ### IPositionedShape
 
-An interface that defines the `render()` method to be implemented by concrete shape classes. Dart language does not support the interface as a class type, so we define an interface by creating an abstract class and providing a method header (name, return type, parameters) without the default implementation.
+一个接口定义了 `render()` 方法，由具体的形状类实现。Dart 语言不支持将接口作为类类型，因此我们通过创建一个抽象类并提供方法头（名称、返回类型、参数），而不提供默认实现来定义接口。
 
 ```dart title="ipositioned_shape.dart"
 abstract interface class IPositionedShape {
@@ -113,7 +94,7 @@ abstract interface class IPositionedShape {
 
 ### Concrete shapes
 
-`Circle` - a specific implementation of the `IPositionedShape` interface representing the shape of a circle.
+`Circle` - 代表圆形的 `IPositionedShape` 接口的具体实现。
 
 ```dart title="circle.dart"
 class Circle implements IPositionedShape {
@@ -143,7 +124,7 @@ class Circle implements IPositionedShape {
 }
 ```
 
-`Square` - a specific implementation of the `IPositionedShape` interface representing the shape of a square.
+`Square` - 代表正方形的 `IPositionedShape` 接口的具体实现。
 
 ```dart title="square.dart"
 class Square implements IPositionedShape {
@@ -174,7 +155,7 @@ class Square implements IPositionedShape {
 
 ### ShapeFactory
 
-A simple factory class that defines the `createShape()` method to create a concrete shape by providing its type.
+一个简单的工厂类，定义了 `createShape()` 方法，通过提供其类型来创建具体的形状。
 
 ```dart title="shape_factory.dart"
 class ShapeFactory {
@@ -195,7 +176,7 @@ class ShapeFactory {
 
 ### ShapeFlyweightFactory
 
-A flyweight factory class that keeps track of all the flyweight objects and creates them if needed.
+一个 flyweight 工厂类，跟踪所有的 flyweight 对象，并在需要时创建它们。
 
 ```dart title="shape_flyweight_factory.dart"
 class ShapeFlyweightFactory {
@@ -220,11 +201,11 @@ class ShapeFlyweightFactory {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备并提供了一个作为模式描述的 markdown 文件：
 
-![Example markdown](./img/example_markdown.gif)
+![示例 markdown](./img/example_markdown.gif)
 
-`FlyweightExample` initialises and contains the `ShapeFlyweightFactory` class object. Also, for demonstration purposes, the `ShapeFactory` object is initialised here, too. Based on the selected option, either the `ShapeFactory` or `ShapeFlyweightFactory` is used to populate a list of `IPositionedShape` objects which are rendered in the background of the example screen.
+`FlyweightExample` 初始化并包含 `ShapeFlyweightFactory` 类对象。此外，出于演示目的，这里也初始化了 `ShapeFactory` 对象。根据所选选项，使用 `ShapeFactory` 或 `ShapeFlyweightFactory` 来填充 `IPositionedShape` 对象列表，这些对象在示例屏幕的背景中被渲染。
 
 ```dart title="flyweight_example.dart"
 class FlyweightExample extends StatefulWidget {
@@ -325,28 +306,26 @@ class _FlyweightExampleState extends State<FlyweightExample> {
 }
 ```
 
-With the `ShapeFlyweightFactory`, the client - `FlyweightExample` widget - does not care about the flyweight objects' creation or management. `IPositionedShape` objects are requested from the factory by passing the `ShapeType`, flyweight factory keeps all the instances of the needed shapes themselves, and only returns references to them. Hence, only a single instance of a shape object per type could be created and reused when needed.
+使用 `ShapeFlyweightFactory` 时，客户端 - `FlyweightExample` 小部件 - 不需要关心 flyweight 对象的创建或管理。`IPositionedShape` 对象通过传递 `ShapeType` 从工厂请求，flyweight 工厂保留了所有需要形状的实例，并只返回它们的引用。因此，每种类型的形状对象只能创建一个实例，并在需要时重复使用。
 
-![Flyweight example](./img/example.gif)
+![Flyweight 示例](./img/example.gif)
 
-From the example, we could see that either 2 or 1000 shape instances are created to build the screen background. However, to understand what is happening under the hood, we can check the memory consumption using Dart Observatory.
+从示例中，我们可以看到，为了构建屏幕背景，创建了 2 个或 1000 个形状实例。然而，要了解幕后发生了什么，我们可以使用 Dart Observatory 检查内存消耗。
 
-When we access the Markdown screen of the Flyweight design pattern, Circle and Square instances are not created since they are not visible on the screen:
+当我们访问 Flyweight 设计模式的 Markdown 屏幕时，由于它们不在屏幕上可见，所以不会创建 Circle 和 Square 实例：
 
-![Shape instances not created](./img/shapes_not_created.png)
+![形状实例未创建](./img/shapes_not_created.png)
 
-Before rendering the Example screen (without using the flyweight factory), a total of 1000 shape instances are created - in this case, 484 circles and 516 squares:
+在渲染示例屏幕之前（未使用 flyweight 工厂），创建了总共 1000 个形状实例 - 在这种情况下，是 484 个圆和 516 个正方形：
 
-![Shapes without flyweight factory](./img/shapes_without_flyweight.png)
+![未使用 flyweight 工厂的形状](./img/shapes_without_flyweight.png)
 
-When we use the flyweight factory, only one instance per specific shape is needed which is initiated and then shared (reused) later:
+当我们使用 flyweight 工厂时，每个特定形状只需要一个实例，该实例被初始化后随后共享（重用）：
 
-![Shapes with flyweight factory](./img/shapes_with_flyweight.png)
+![使用 flyweight 工厂的形状](./img/shapes_with_flyweight.png)
 
-One shape instance uses 16 bytes of memory, so when we initiate 1000 shapes, that is ~16kB of memory in total. However, when a flyweight factory is used, only 32 bytes are enough to store all different shape instances - 500 times less memory is needed! Now, if you increase the number of shapes to 1 million, without the flyweight factory you would need ~15.2MB of memory to store them, but with a flyweight factory, the same 32 bytes would be enough.
+一个形状实例使用 16 字节的内存，所以当我们初始化 1000 个形状时，总共需要约 16kB 的内存。然而，当使用 flyweight 工厂时，只需要 32 字节的内存就足以存储所有不同的形状实例 - 需要的内存减少了 500 倍！现在，如果将形状数量增加到 100 万，未使用 flyweight 工厂时需要约 15.2MB 的内存来存储它们，但使用 flyweight 工厂，相同的 32 字节就足够了。
 
-All of the code changes for the Flyweight design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/20).
+所有有关 Flyweight 设计模式及其示例实现的代码更改可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/20)找到。
 
-:::tip
-To see the pattern in action, check the [interactive Flyweight example](https://flutterdesignpatterns.com/pattern/flyweight).
-:::
+要查看模式实际操作，请查看[交互式 Flyweight 示例](https://flutterdesignpatterns.com/pattern/flyweight)。

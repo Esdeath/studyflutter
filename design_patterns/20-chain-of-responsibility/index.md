@@ -1,116 +1,100 @@
----
-slug: flutter-design-patterns-20-chain-of-responsibility
-title: "Flutter Design Patterns: Chain of Responsibility"
-authors: mkobuolys
-tags:
-  - Dart
-  - Flutter
-  - OOP
-  - Design Patterns
-image: ./img/header.png
----
-
-_An overview of the Chain of Responsibility design pattern and its implementation in Dart and Flutter_
+**链式责任设计模式概述及其在 Dart 和 Flutter 中的实现**
 
 ![Header image](./img/header.png)
 
-Previously in the series, I analysed a structural design pattern that introduced a concept of a "shared object" which could be used in multiple contexts simultaneously, hence reducing the memory usage of your code - [Flyweight](../2020-06-01-flutter-design-patterns-19-flyweight/index.md). This time I would like to represent a behavioural design pattern, which enables loose coupling between the sender of a request and its receiver, also adding a possibility for the same request to be handled by multiple handlers - it is the Chain of Responsibility.
+要查看所有设计模式的实际操作，请查看 [Flutter Design Patterns 应用](https://flutterdesignpatterns.com/)。
 
-<!--truncate-->
-
-:::tip
-To see all the design patterns in action, check the [Flutter Design Patterns application](https://flutterdesignpatterns.com/).
-:::
-
-## What is the Chain of Responsibility design pattern?
+## 什么是链式责任设计模式？
 
 ![A chain of people responsible for neighbours' freedom a.k.a. proud to be Lithuanian](./img/chain_of_people.jpeg)
 
-**Chain of Responsibility (CoR)**, also known as **Chain of Command**, is a behavioural design pattern, which intention in the [GoF book](https://en.wikipedia.org/wiki/Design_Patterns) is described like this:
+**Chain of Responsibility (CoR)**，也称为**命令链**，是一种行为设计模式，其在 [GoF 书籍](https://en.wikipedia.org/wiki/Design_Patterns)中的意图描述如下：
 
-> _Avoid coupling the sender of a request to its receiver by giving more than one object a chance to handle the request. Chain the receiving objects and pass the request along the chain until an object handles it._
+> _通过给多个对象机会处理请求，避免将请求的发送者与接收者耦合起来。将接收对象连接起来，并沿着链传递请求，直到有对象处理它。_
 
-TL;DR: the Chain of Responsibility design pattern is an ordered list of message handlers that know how to do two things - process a specific type of message or pass the message along to the next message handler.
+简而言之：链式责任设计模式是一个有序的消息处理器列表，这些处理器知道如何处理特定类型的消息，或者将消息传递给下一个消息处理器。
 
-First of all, the Chain of Responsibility design pattern is behavioural which means that its primary purpose is to rework the basic workflow (behaviour) and split it into several separate parts or stand-alone objects (recall [Command](../2020-01-09-flutter-design-patterns-12-command/index.md) or [State](../2019-11-20-flutter-design-patterns-6-state/index.md) design patterns as examples). Let's say you have some kind of workflow defined in your code where each step should be executed sequentially. It works and everything is fine until…
+首先，链式责任设计模式是一种行为模式，这意味着它的主要目的是重新设计基本工作流（行为），并将其分解为几个独立的部分或独立对象（回想一下 [Command](../2020-01-09-flutter-design-patterns-12-command/index.md) 或 [State](../2019-11-20-flutter-design-patterns-6-state/index.md) 设计模式作为例子）。假设你在代码中定义了某种工作流程，每个步骤都需要按顺序执行。一切运行良好，直到…
 
-- Some additional steps should be introduced. _Ok, not a big deal, just add them._
-- Some of these steps are optional based on the request. _Well, let's add some conditional blocks, nothing extraordinary._
-- Oops, we forgot validation… _Hmm, the code starts bloating somehow._
-- A wild feature request appears: the order of the steps is different based on the request. _Please, stahp…_
+- 需要引入一些额外的步骤。_好吧，没什么大不了的，就加进去。_
+- 根据请求，这些步骤中的一些是可选的。_好吧，加入一些条件块，没什么特别的。_
+- 哎呀，我们忘了验证... _嗯，代码开始变得臃肿了。_
+- 突然出现一个新功能需求：根据请求，步骤的顺序不同。_请，停下来..._
 
-Well, I hope you get the idea that this code could easily become a mess (not to mention the violation of the Open-Closed Principle - the letter **O** in [**SOLID**](https://en.wikipedia.org/wiki/SOLID) principles). What the CoR pattern suggests is to split each step into a separate component - *handler* - and later link these handlers into a chain. Each handler contains a reference to the next one, hence once the request is received it is processed by the handler and passed to the next one along the chain until the workflow is finished. As a result, we still have the same sequential code execution, but now each step is separated, and additional steps could be added without changing the existing code. But wait, there is more!
+我希望你明白，这段代码很容易变得一团糟（更不用说违反了开闭原则 - [**SOLID**](https://en.wikipedia.org/wiki/SOLID) 原则中的字母 **O**）。CoR 模式的建议是将每个步骤分解成一个独立的组件 - **处理器** - 然后将这些处理器链接成一个链。每个处理器都包含对下一个处理器的引用，因此一旦接收到请求，它就会被处理器处理，并沿着链传递到下一个处理器，直到工作流程完成。结果，我们仍然有相同的顺序代码执行，但现在每个步骤都被分开了，额外的步骤可以添加而不改变现有代码。但等等，还有更多！
 
-The Chain of Responsibility pattern allows reordering, adding or removing handlers in the chain at run-time - how cool is that, right? Also, each handler could be implemented in a way that it could decide whether to pass the request further down the chain or not.
+链式责任模式允许在运行时对链中的处理器进行重新排序、添加或移除 - 是不是很酷？此外，每个处理器都可以实现成一种方式，即决定是否将请求进一步传递到链上。
 
-Lots of great ideas are already mentioned here, so let's just jump right in by analysing the CoR design pattern and its implementation in more detail!
+这里已经提到了很多好主意，让我们直接通过分析 CoR 设计模式及其实现来了解更多细节！
 
-## Analysis
+## 责任链设计模式分析
 
-The general structure of the Chain of Responsibility design pattern looks like this:
+责任链设计模式的基本结构如下所示：
 
-![Structure of the Chain of Responsibility design pattern](./img/chain_of_responsibility.png)
+![责任链设计模式的结构](./img/chain_of_responsibility.png)
 
-- *Handler* - defines an interface for handling requests. This interface is optional when all the handlers extend the _BaseHandler_ class - then having a single abstract method for handling requests should be enough;
-- *BaseHandler* - an abstract class that contains the boilerplate code common to all the handler classes and maintains a reference to the next handler object on the chain. Also, the class may implement the default handling behaviour e.g. it can pass the request to the next handler if there is one;
-- *ConcreteHandlers* - contain the actual code for processing the request. Upon receiving a request, the handler could either handle it or pass it along the chain. Usually, handlers are immutable once they are initialised;
-- *Client* - composes the chain(s) of handlers and later initiates the request to a _ConcreteHandler_ object on the chain.
+- **处理器（Handler）** - 定义处理请求的接口。当所有处理器都扩展了 **BaseHandler** 类时，这个接口是可选的，这时只需要一个抽象方法来处理请求即可。
+- **基础处理器（BaseHandler）** - 一个抽象类，包含所有处理器类通用的样板代码，并维护链上下一个处理器对象的引用。此类还可能实现默认的处理行为，例如，如果有下一个处理器，则可以将请求传递给它。
+- **具体处理器（ConcreteHandlers）** - 包含处理请求的实际代码。接收到请求后，处理器可以选择处理它或将其沿链传递。通常，一旦初始化，处理器就是不可变的。
+- **客户端（Client）** - 组合处理器链并稍后向链上的一个 **ConcreteHandler** 对象发起请求。
 
-### Applicability
+### 适用性
 
-The Chain of Responsibility design pattern should be used when the system is expected to process different kinds of requests in various ways, but neither the request types nor the handling sequence is defined at compile time. The pattern enables linking several handlers into one chain and allowing the client to pass requests along that chain. As a result, each handler will receive the request, process it, and/or pass it further. Also, to resolve the unknown handling sequence problem, handlers could provide setters for a reference field of the successor inside the handler classes - you will be able to add, delete or reorder handlers at run-time, hence changing the handling sequence of a request.
+当系统需要以不同的方式处理多种类型的请求，但请求类型和处理顺序在编译时未定义时，应使用责任链设计模式。该模式允许将多个处理器链接成一个链，并允许客户端沿该链传递请求。因此，每个处理器将接收请求，处理它，并/或进一步传递。此外，为了解决未知的处理顺序问题，处理器可以为处理器类中的后续引用字段提供设置器 - 这样您就可以在运行时添加、删除或重新排序处理器，从而更改请求的处理顺序。
 
-Furthermore, the CoR pattern should be used when a single request must be handled by multiple handlers, usually in a particular order. In this case, the chain could be defined at compile-time and all requests will get through the chain exactly as planned. If the execution order is irrelevant, just roll the dice and build the chain in random order - all handlers would still receive the request and handle it.
+此外，当一个请求必须由多个处理器按特定顺序处理时，应使用责任链模式。在这种情况下，可以在编译时定义链，并且所有请求都将按计划通过链。如果执行顺序无关紧要，可以随机构建链 - 所有处理器仍然会接收请求并处理它。
 
-Finally, one thing to remember - **the receipt isn't guaranteed**. Since CoR introduces the loose coupling between sender and receiver, and the request could be handled by any handler in the chain, there is no guarantee that it will be actually handled. In cases when the request must be processed by at least one handler, you must ensure that the chain is configured properly, for instance, by adding some kind of a monitor handler at the end of the chain that notifies about unhandled requests and/or executes some specific logic.
+最后，需要记住的一点 - **无法保证请求一定会被处理**。由于责任链引入了发送方和接收方之间的松耦合，且请求可能由链中的任何处理器处理，因此无法保证请求实际上会被处理。在请求必须至少由一个处理器处理的情况下，您必须确保链被正确配置，例如，在链的末端添加某种监视器处理器，以通知未处理的请求和/或执行某些特定逻辑。
+
 
 ## Implementation
 
 ![Let's get the party started](./img/lets_get_the_party_started.gif)
 
-We will use the Chain of Responsibility design pattern to implement a custom logging workflow in the application.
+我们将使用责任链设计模式在应用程序中实现自定义的日志记录工作流程。
 
-Let's say that we want 3 different log levels based on their importance:
+假设我们根据重要性需要三种不同的日志级别：
 
-- Debug - only needed in the local environment for development purposes;
-- Info - we want to see those logs locally, but also they should be stored and visible in the external logging service when the application is deployed;
-- Error - those logs must be visible locally and external logging service, but also we want to notify our development team by sending an e-mail when such a log appears.
+- 调试（Debug） - 仅在本地开发环境中需要；
+- 信息（Info） - 我们希望在本地看到这些日志，但当应用部署时，也应该在外部日志服务中存储并可见；
+- 错误（Error） - 这些日志必须在本地和外部日志服务中可见，同时，当出现此类日志时，我们还希望通过发送电子邮件通知我们的开发团队。
 
-In this case, our request is a log message with its content and log level. Our handlers - debug, info and error loggers with their custom logic. To implement the wanted workflow, we could link the loggers in the following order: Debug -> Info -> Error. If the logger's log level is lower or equal to the one defined in the message, the message should be logged. And that's basically it, really, it's that simple!
+在这种情况下，我们的请求是一个带有内容和日志级别的日志消息。我们的处理器 - 调试、信息和错误日志记录器 - 每个都带有自定义逻辑。为了实现所需的工作流程，我们可以按以下顺序链接日志记录器：调试 -> 信息 -> 错误。如果日志记录器的日志级别低于或等于消息中定义的级别，就应记录该消息。就这么简单！
 
-A picture is worth a thousand words, so let's check the class diagram first and then implement the pattern.
+一幅图胜过千言万语，让我们先看一下类图，然后实现这个模式。
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Chain of Responsibility design pattern:
+下面的类图展示了责任链设计模式的实现：
 
-![Class Diagram - Implementation of the Chain of Responsibility design pattern](./img/chain_of_responsibility_implementation.png)
+![责任链设计模式的实现类图](./img/chain_of_responsibility_implementation.png)
 
-The `LogLevel` is an enumerator class defining possible log levels - Debug, Info and Error.
+`LogLevel` 是一个枚举类，定义了可能的日志级别 - 调试（Debug）、信息（Info）和错误（Error）。
 
-`LogMessage` class is used to store information about the log message: its log level and the message text. It also provides a public `getFormattedMessage()` method to format the log entry as a Widget object (for that, a private helper method `getLogEntryColor()` and a getter `logLevelString` are used).
+`LogMessage` 类用于存储日志消息的信息：其日志级别和消息文本。它还提供了一个公共方法 `getFormattedMessage()` 来将日志条目格式化为 Widget 对象（为此，使用了一个私有辅助方法 `getLogEntryColor()` 和一个 getter `logLevelString`）。
 
-`LoggerBase` is an abstract class that is used as a base class for all the specific loggers:
+`LoggerBase` 是一个抽象类，用作所有特定日志记录器的基类：
 
-- `logMessage()` - logs message using the `log()` method and passes the request along the chain;
-- `logDebug()` - logs the message with a log level of Debug;
-- `logInfo()` - logs the message with a log level of Info;
-- `logError()` - logs the message with a log level of Error;
-- `log()` - an abstract method to log the message (must be implemented by a specific logger).
+- `logMessage()` - 使用 `log()` 方法记录消息并沿链传递请求；
+- `logDebug()` - 以调试级别记录消息；
+- `logInfo()` - 以信息级别记录消息；
+- `logError()` - 以错误级别记录消息；
+- `log()` - 一个抽象方法，用于记录消息（必须由特定的日志记录器实现）。
 
-Also, the `LoggerBase` contains a reference to the next logger (`nextLogger`) and the logger's log level (`logLevel`).
+此外，`LoggerBase` 包含对下一个日志记录器（`nextLogger`）的引用和日志记录器的日志级别（`logLevel`）。
 
-`DebugLogger`, `InfoLogger` and `ErrorLogger` are concrete logger classes that extend the `LoggerBase` class and implement the abstract `log()` method. `InfoLogger` uses the `ExternalLoggingService` to log messages, and `ErrorLogger` - the `MailService`.
+`DebugLogger`、`InfoLogger` 和 `ErrorLogger` 是具体的日志记录器类，它们扩展了 `LoggerBase` 类并实现了抽象的 `log()` 方法。`InfoLogger` 使用 `ExternalLoggingService` 来记录消息，而 `ErrorLogger` 使用 `MailService`。
 
-All the specific loggers use or inject the `LogBloc` class to mock the actual logging and provide log entries to the UI.
+所有特定的日志记录器都使用或注入 `LogBloc` 类来模拟实际的日志记录，并将日志条目提供给 UI。
 
-`LogBloc` stores a list of logs and exposes them through the stream - `outLogStream`. Also, it defines the `log()` method to add a new log to the list and notify `outLogStream` subscribers with an updated log entries list.
+`LogBloc` 存储了一个日志列表，并通过流 `outLogStream` 对外暴露。它还定义了 `log()` 方法，以将新日志添加到列表中并通知 `outLogStream` 订阅者更新后的日志条目列表。
 
-`ChainOfResponsibilityExample` creates a chain of loggers and uses public methods defined in `LoggerBase` to log messages. It also initialises and contains the `LogBloc` instance to store log entries and later show them in the UI.
+`ChainOfResponsibilityExample` 创建了一个日志记录器链，并使用 `LoggerBase` 中定义的公共方法来记录消息。它还初始化并包含 `LogBloc` 实例来存储日志条目，并稍后在 UI 中显示它们。
+
 
 ### LogLevel
 
-A special kind of class - *enumeration* - to define different log levels. Also, the `<=` operator is overridden to compare whether one log level is lower or equal to the other.
+用于定义不同日志级别的特殊类。此外，重写了 `<=` 运算符，以比较一个日志级别是否低于或等于另一个。
 
 ```dart title="log_level.dart"
 enum LogLevel {
@@ -124,7 +108,7 @@ enum LogLevel {
 
 ### LogMessage
 
-A simple class to store information about the log entry: log level and message. Also, this class defines a private getter `logLevelString` to return the text representation of a specific log level and a private method `getLogEntryColor()` to return the log entry colour based on the log level. The `getFormattedMessage()` method returns the formatted log entry as a `Text` widget which is used in the UI.
+用于存储日志条目的信息：日志级别和消息。该类定义了一个私有 getter `logLevelString` 来返回特定日志级别的文本表示，以及一个私有方法 `getLogEntryColor()` 来根据日志级别返回日志条目颜色。`getFormattedMessage()` 方法返回格式化的日志条目作为 `Text` 小部件，用于 UI。
 
 ```dart title="log_message.dart"
 class LogMessage {
@@ -157,7 +141,7 @@ class LogMessage {
 
 ### LogBloc
 
-A Business Logic component (BLoC) class to store log messages and provide them to the UI through a public stream. New log entries are added to the logs list via the `log()` method while all the logs could be accessed through the public `outLogStream`.
+用于存储日志消息并通过公共流提供给 UI 的类。新的日志条目通过 `log()` 方法添加到日志列表，所有日志可以通过公共 `outLogStream` 访问。
 
 ```dart title="log_bloc.dart"
 class LogBloc {
@@ -180,7 +164,7 @@ class LogBloc {
 
 ### ExternalLoggingService
 
-A simple class that represents the actual external logging service. Instead of sending the log message to some kind of 3rd party logging service (which, in fact, could be called in the `logMessage()` method), it just logs the message to UI through the `LogBloc`.
+代表实际的外部日志服务。它不是将日志消息发送到第三方日志服务，而是通过 `LogBloc` 将消息记录到 UI。
 
 ```dart title="external_logging_service.dart"
 class ExternalLoggingService {
@@ -201,7 +185,7 @@ class ExternalLoggingService {
 
 ### MailService
 
-A simple class that represents the actual mail logging service. Instead of sending the log message as an email to the user, it just logs the message to UI through `LogBloc`.
+代表实际的邮件日志服务。它不是将日志消息作为电子邮件发送给用户，而是通过 `LogBloc` 将消息记录到 UI。
 
 ```dart title="mail_service.dart"
 class MailService {
@@ -222,7 +206,7 @@ class MailService {
 
 ### LoggerBase
 
-An abstract class for the base logger implementation. It stores the log level and a reference (successor) to the next logger in the chain. Also, the class implements a common `logMessage()` method that logs the message if its log level is lower than the current logger's and then forwards the message to the successor (if there is one). The abstract `log()` method must be implemented by specific loggers extending the `LoggerBase` class.
+用于基础日志记录器实现的抽象类。它存储日志级别和链中下一个日志记录器的引用（后继者）。该类实现了通用的 `logMessage()` 方法，如果消息的日志级别低于当前记录器的级别，则记录该消息，然后将消息转发给后继者（如果有的话）。抽象方法 `log()` 必须由扩展 `LoggerBase` 类的特定记录器实现。
 
 ```dart title="logger_base.dart"
 abstract class LoggerBase {
@@ -251,7 +235,7 @@ abstract class LoggerBase {
 
 ### Concrete loggers
 
-`DebugLogger` - a specific implementation of the logger that sets the log level to `Debug` and simply logs the message to UI through the `LogBloc`.
+`DebugLogger` - 一个特定实现，将日志级别设置为 `Debug`，并通过 `LogBloc` 将消息记录到 UI。
 
 ```dart title="debug_logger.dart"
 class DebugLogger extends LoggerBase {
@@ -271,7 +255,7 @@ class DebugLogger extends LoggerBase {
 }
 ```
 
-`InfoLogger` - a specific implementation of the logger that sets the log level to `Info` and uses the `ExternalLoggingService` to log the message.
+`InfoLogger` - 一个特定实现，将日志级别设置为 `Info`，并使用 `ExternalLoggingService` 记录消息。
 
 ```dart title="info_logger.dart"
 class InfoLogger extends LoggerBase {
@@ -290,7 +274,7 @@ class InfoLogger extends LoggerBase {
 }
 ```
 
-`ErrorLogger` - a specific implementation of the logger that sets the log level to `Error` and uses the `MailService` to log the message.
+`ErrorLogger` - 一个特定实现，将日志级别设置为 `Error`，并使用 `MailService` 记录消息。
 
 ```dart title="error_logger.dart"
 class ErrorLogger extends LoggerBase {
@@ -311,11 +295,11 @@ class ErrorLogger extends LoggerBase {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个 Markdown 文件作为模式描述：
 
 ![Example markdown](./img/example_markdown.gif)
 
-The `ChainOfResponsibilityExample` widget initialises and contains the loggers' chain object (see the `initState()` method). Also, for demonstration purposes, the `LogBloc` object is initialised there, too, and used to send logs and retrieve a list of them through the stream - `outLogStream`.
+`ChainOfResponsibilityExample` 小部件初始化并包含日志记录器链对象（参见 `initState()` 方法）。此外，出于演示目的，也在此初始化了 `LogBloc` 对象，并通过流 `outLogStream` 使用它发送日志和检索日志列表。
 
 ```dart title="chain_of_responsibility_example.dart"
 class ChainOfResponsibilityExample extends StatefulWidget {
@@ -402,14 +386,11 @@ class _ChainOfResponsibilityExampleState
 }
 ```
 
-By creating a chain of loggers, the client - `ChainOfResponsibilityExample` widget - does not care about the details on which specific logger should handle the log entry, it just passes (logs) the message to a chain of loggers. This way, the sender (client) and receiver (logger) are decoupled, and the loggers' chain itself could be built at run-time in any order or structure e.g. you can skip the Debug logger for non-local environments and only use the Info -> Error chain.
+通过创建一个日志记录器链，客户端（ChainOfResponsibilityExample小部件）不需要关心哪个具体的日志记录器应该处理日志条目的详细信息，它只是将消息传递（记录）给一系列日志记录器。这样，发送方（客户端）和接收方（日志记录器）解耦，日志记录器的链本身可以在运行时以任何顺序或结构构建，例如，您可以在非本地环境中跳过调试日志记录器，仅使用信息 -> 错误链。
 
 ![Chain of Responsibility example](./img/example.gif)
 
-As you can see in the example, _debug_ level logs are only handled by the debug logger, *info* - by debug and info level handlers and _error_ logs are handled by all three loggers.
+正如您在示例中所看到的，**debug** 级别的日志只由调试日志记录器处理，**info** 由调试和信息级别的处理程序处理，而 **error** 日志由所有三个日志记录器处理。
+您可以在[here](https://github.com/mkobuolys/flutter-design-patterns/pull/21).找到有关责任链设计模式及其示例实现的所有代码更改。
 
-All of the code changes for the Chain of Responsibility design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/21).
-
-:::tip
-To see the pattern in action, check the [interactive Chain of Responsibility example](https://flutterdesignpatterns.com/pattern/chain-of-responsibility).
-:::
+要查看该模式的实际应用，请查看 [interactive Chain of Responsibility example](https://flutterdesignpatterns.com/pattern/chain-of-responsibility).

@@ -48,36 +48,37 @@ Bridge 设计模式的总体结构如下所示：
 在持久化层中，有多个针对每种实体类型的仓库。这些仓库共享一个公共接口 — 这就是我们的抽象。如果你想在运行时更改存储类型（使用本地或云端存储），这些仓库不能引用特定的存储实现，它们应该使用不同类型存储之间共享的某种抽象。好吧，我们可以在此基础上构建另一个抽象（接口），然后由特定存储实现。现在我们将我们的仓库抽象与存储的接口连接起来 — 就是这样，Bridge 设计模式就被引入到我们的应用程序中了！让我们先看一下类图，然后再探究一些实现细节。
 
 
-### Class diagram
+### 类图
 
-The class diagram below shows the implementation of the Bridge design pattern:
+下面的类图展示了桥接设计模式的实现：
 
-![Class Diagram - Implementation of the Bridge design pattern](./img/bridge_implementation.png)
+![桥接设计模式的实现类图](./img/bridge_implementation.png)
 
-The `EntityBase` is an abstract class that is used as a base class for all the entity classes. The class contains an `id` property and a named constructor `EntityBase.fromJson()` to map the JSON object to the class field.
+`EntityBase` 是一个抽象基类，用于所有实体类。该类包含一个 `id` 属性和一个命名构造函数 `EntityBase.fromJson()`，用于将 JSON 对象映射到类字段。
 
-`Customer` and `Order` are concrete entities that extend the abstract class `EntityBase`. `Customer` class contains `name` and `email` properties, `Customer.fromJson()` named constructor to map the JSON object to class fields and a `toJson()` method to map class fields to the corresponding JSON map object. `Order` class contain `dishes` (a list of dishes of that order) and `total` fields, a named constructor `Order.fromJson()` and a `toJson()` method respectively.
+`Customer` 和 `Order` 是扩展 `EntityBase` 的具体实体类。`Customer` 类包含 `name` 和 `email` 属性，有一个 `Customer.fromJson()` 命名构造函数用于映射 JSON 对象到类字段，并有一个 `toJson()` 方法将类字段映射到 JSON 对象。`Order` 类包含 `dishes`（订单中的菜品列表）和 `total` 字段，提供了 `Order.fromJson()` 命名构造函数和 `toJson()` 方法。
 
-`IRepository` defines a common interface for the repositories:
+`IRepository` 接口定义了仓库的通用接口：
 
-- `getAll()` - returns all records from the repository;
-- `save()` - saves an entity of type `EntityBase` in the repository.
+- `getAll()` - 返回仓库中的所有记录；
+- `save()` - 保存类型为 `EntityBase` 的实体到仓库。
 
-`CustomersRepository` and `OrdersRepository` are concrete implementations of the `IRepository` interface. Also, these classes contain a storage property of type `IStorage` which is injected into the repository via the constructor.
+`CustomersRepository` 和 `OrdersRepository` 是 `IRepository` 接口的具体实现。这些类还包含一个类型为 `IStorage` 的存储属性，通过构造函数注入仓库。
 
-`IStorage` defines a common interface for the storages:
+`IStorage` 接口定义了存储的通用接口：
 
-- `getTitle()` - returns the title of the storage. The method is used in UI;
-- `fetchAll<T>()` - returns all the records of type `T` from the storage;
-- `store<T>()` - stores a record of type `T` in the storage.
+- `getTitle()` - 返回存储的标题，用于 UI 中；
+- `fetchAll<T>()` - 返回存储中所有类型为 `T` 的记录；
+- `store<T>()` - 将类型为 `T` 的记录存储到存储中。
 
-`FileStorage` and `SqlStorage` are concrete implementations of the `IStorage` interface. Additionally, the `FileStorage` class uses the `JsonHelper` class and its static methods to serialise/deserialise JSON objects.
+`FileStorage` 和 `SqlStorage` 是 `IStorage` 接口的具体实现。另外，`FileStorage` 类使用 `JsonHelper` 类的静态方法来序列化/反序列化 JSON 对象。
 
-`BridgeExample` initialises and contains both - customer and order - repositories which are used to retrieve the corresponding data. Additionally, the storage type of these repositories could be changed between the `FileStorage` and `SqlStorage` separately and at the run-time.
+`BridgeExample` 初始化并包含客户和订单仓库，用于检索相应数据。此外，这些仓库的存储类型可以在 `FileStorage` 和 `SqlStorage` 之间在运行时进行更改。
+
 
 ### EntityBase
 
-An abstract class that stores the `id` field and is extended by all of the entity classes.
+一个抽象类，存储 `id` 字段，并被所有实体类扩展。
 
 ```dart title="entity_base.dart"
 abstract class EntityBase {
@@ -91,7 +92,7 @@ abstract class EntityBase {
 
 ### Customer
 
-A simple class to store information about the customer: its `name` and `email`. Also, the constructor generates random values when initialising the `Customer` object.
+一个简单的类，用于存储客户信息：其 `name` 和 `email`。此外，构造函数在初始化 `Customer` 对象时生成随机值。
 
 ```dart title="customer.dart"
 class Customer extends EntityBase {
@@ -117,7 +118,7 @@ class Customer extends EntityBase {
 
 ### Order
 
-A simple class to store information about the order: a list of `dishes` it contains and the `total` price of the order. Also, the constructor generates random values when initialising the `Order` object.
+一个简单的类，用于存储订单信息：它包含的 `dishes`（菜品）列表和订单的 `total`（总价）。同样，构造函数在初始化 `Order` 对象时生成随机值。 ### JsonHelper
 
 ```dart title="order.dart"
 class Order extends EntityBase {
@@ -146,7 +147,7 @@ class Order extends EntityBase {
 
 ### JsonHelper
 
-A helper class is used by the `FileStorage` to serialise objects of type `EntityBase` to JSON map objects and deserialise them from the JSON string.
+一个辅助类，被 `FileStorage` 用于将类型为 `EntityBase` 的对象序列化为 JSON 映射对象，并从 JSON 字符串中反序列化它们。
 
 ```dart title="json_helper.dart"
 class JsonHelper {
@@ -170,7 +171,7 @@ class JsonHelper {
 
 ### IRepository
 
-An interface that defines methods to be implemented by the derived repository classes.
+一个接口，定义了派生仓库类应实现的方法。
 
 ```dart title="irepository.dart"
 abstract interface class IRepository {
@@ -181,7 +182,7 @@ abstract interface class IRepository {
 
 ### Concrete repositories
 
-`CustomersRepository` - a specific implementation of the `IRepository` interface to store customers' data.
+`CustomersRepository` - 一个特定的 `IRepository` 接口实现，用于存储客户数据。
 
 ```dart title="customers_repository.dart"
 class CustomersRepository implements IRepository {
@@ -199,7 +200,7 @@ class CustomersRepository implements IRepository {
 }
 ```
 
-`OrdersRepository` - a specific implementation of the `IRepository` interface to store orders' data.
+`OrdersRepository` - 一个特定的 `IRepository` 接口实现，用于存储订单数据。
 
 ```dart title="orders_repository.dart"
 class OrdersRepository implements IRepository {
@@ -219,7 +220,7 @@ class OrdersRepository implements IRepository {
 
 ### IStorage
 
-An interface that defines methods to be implemented by the derived storage classes.
+一个接口，定义了派生存储类应实现的方法。
 
 ```dart title="istorage.dart"
 abstract interface class IStorage {
@@ -231,7 +232,7 @@ abstract interface class IStorage {
 
 ### Concrete storages
 
-`FileStorage` - a specific implementation of the `IStorage` interface to store an object in the storage as a file - this behaviour is mocked by storing an object as a JSON string.
+`FileStorage` - 一个特定的 `IStorage` 接口实现，用于将对象作为文件存储在存储中 - 此行为通过将对象存储为 JSON 字符串来模拟。
 
 ```dart title="file_storage.dart"
 class FileStorage implements IStorage {
@@ -258,7 +259,7 @@ class FileStorage implements IStorage {
 }
 ```
 
-`SqlStorage` - a specific implementation of the `IStorage` interface to store an object in the storage as an entity - this behaviour is mocked by using the Map data structure and appending entities of the same type to the list.
+`SqlStorage` - 一个特定的 `IStorage` 接口实现，用于将对象作为实体存储在存储中 - 此行为通过使用 Map 数据结构并将同一类型的实体附加到列表中来模拟。
 
 ```dart title="sql_storage.dart"
 class SqlStorage implements IStorage {
@@ -282,11 +283,12 @@ class SqlStorage implements IStorage {
 
 ## Example
 
-First of all, a markdown file is prepared and provided as a pattern's description:
+首先，准备了一个 Markdown 文件并作为模式的描述提供：
 
-![Example markdown](./img/example_markdown.gif)
+![示例 Markdown](./img/example_markdown.gif)
 
-`BridgeExample` contains a list of storage - instances of `SqlStorage` and `FileStorage` classes. Also, it initialises `Customer` and `Order` repositories. In the repositories the concrete type of storage could be interchanged by triggering the `onSelectedCustomerStorageIndexChanged()` for the `CustomersRepository` and `onSelectedOrderStorageIndexChanged()` for the `OrdersRepository` respectively.
+`BridgeExample` 包含一个存储列表 —— `SqlStorage` 和 `FileStorage` 类的实例。同时，它还初始化了 `Customer` 和 `Order` 仓库。在这些仓库中，可以通过触发 `CustomersRepository` 的 `onSelectedCustomerStorageIndexChanged()` 方法和 `OrdersRepository` 的 `onSelectedOrderStorageIndexChanged()` 方法，来交换具体类型的存储。
+
 
 ```dart title="bridge_example.dart"
 class BridgeExample extends StatefulWidget {
@@ -426,14 +428,12 @@ class _BridgeExampleState extends State<BridgeExample> {
 }
 ```
 
-The concrete repository does not care about the specific type of storage it uses as long as the storage implements the `IStorage` interface and all of its methods. As a result, the abstraction (repository) is separated from the implementor (storage) - the concrete implementation of the storage could be changed for the repository at run-time, and the repository does not depend on its implementation details.
+具体的仓库不关心它使用的存储的具体类型，只要该存储实现了 `IStorage` 接口及其所有方法。因此，抽象（仓库）与实现者（存储）被分开 —— 存储的具体实现可以在运行时为仓库更改，且仓库不依赖于其实现细节。
 
-![Bridge example](./img/example.gif)
+![桥接模式示例](./img/example.gif)
 
-As you can see in the example, the storage type could be changed for each repository separately and at run-time - it would not be possible by using the simple class inheritance approach.
+正如你在示例中看到的，存储类型可以在运行时为每个仓库单独更改 —— 使用简单的类继承方法是不可能做到的。
 
-All of the code changes for the Bridge design pattern and its example implementation could be found [here](https://github.com/mkobuolys/flutter-design-patterns/pull/18).
+所有关于桥接设计模式及其示例实现的代码更改可以在[这里](https://github.com/mkobuolys/flutter-design-patterns/pull/18)找到。
 
-:::tip
-To see the pattern in action, check the [interactive Bridge example](https://flutterdesignpatterns.com/pattern/bridge).
-:::
+要看到模式在实践中的应用，请查看[交互式桥接示例](https://flutterdesignpatterns.com/pattern/bridge)。
