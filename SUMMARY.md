@@ -1,5 +1,7 @@
 # Dart设计模式
 
+## 推荐通过GITBOOK进行阅读[设计模式](https://ayaseeri.gitbook.io/flutterstudy/)
+
 - [0.介绍](design_patterns/0-introduction/index.md)
 
 - [1.单例模式](design_patterns/1-singleton/index.md)
