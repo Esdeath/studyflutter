@@ -42,8 +42,7 @@ _适配器设计模式的概述及其在Dart和Flutter中的实现_
 
 ### 适用性
 
-
-The adapter design pattern could (and should!) be used when the interface of the third-party library (or any other code you want to use) does not match the one you are currently using in your application. This rule could also be applied when calling external data sources, APIs and you want to wrap and separate the data conversion code from the primary business logic in your program. The pattern is useful when you want to use multiple implementations (adaptees) that have similar functionality but use different APIs. In this case, all the “hard work” (implementation) could be done in the Adapter classes, whereas the domain-layer code will use the same interface of the adapters. Also, this code abstraction makes the unit testing of the domain-layer code a little bit easier.
+适配器设计模式可以（也应该！）用于第三方库（或任何其他你想使用的代码）的接口与你当前应用程序中使用的接口不匹配的情况。这个规则也可以应用于调用外部数据源、API时，你想将数据转换代码从程序的主要业务逻辑中分离出来。当你想使用多个实现（被适配者）具有类似功能但使用不同API的情况下，这种模式非常有用。在这种情况下，所有的“艰苦工作”（实现）可以在适配器类中完成，而领域层代码将使用适配器的相同接口。此外，这种代码抽象还使得领域层代码的单元测试变得稍微容易一些。
 
 ## 实现
 
