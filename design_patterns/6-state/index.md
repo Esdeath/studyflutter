@@ -57,30 +57,6 @@ _状态设计模式概述及其在Dart和Flutter中的实现_
 
 让我们深入了解状态设计模式及其在 Flutter 中的示例的实现细节！
 
-
-### Class diagram
-
-The class diagram below shows the implementation of the State design pattern:
-
-![Class Diagram - Implementation of the State design pattern](./img/state_implementation.png)
-
-`IState` defines a common interface for all the specific states:
-
-- `nextState()` - changes the current state in `StateContext` object to the next state;
-- `render()` - renders the UI of a specific state.
-
-`NoResultsState`, `ErrorState`, `LoadingState` and `LoadedState` are concrete implementations of the `IState` interface. Each of the states defines its representational UI component via `render()` method, and also uses a specific state (or states, if the next state is chosen from several possible options based on the context) of type `IState` in `nextState()`, which will be changed by calling the `nextState()` method. In addition to this, `LoadedState` contains a list of names, which is injected using the state's constructor, and `LoadingState` uses the `FakeApi` to retrieve a list of randomly generated names.
-
-`StateContext` saves the current state of type `IState` in private `currentState` property, and defines several methods:
-
-- `setState()` - changes the current state;
-- `nextState()` - triggers the `nextState()` method on the current state;
-- `dispose()` - safely closes the `stateStream` stream.
-
-The current state is exposed to the UI by using the outState stream.
-
-`StateExample` widget contains the `StateContext` object to track and trigger state changes, and also uses the `NoResultsState` as the initial state for the example.
-
 ### 类图
 
 下面的类图显示了状态设计模式的实现：
